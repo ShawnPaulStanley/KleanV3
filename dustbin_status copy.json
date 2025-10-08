@@ -3,14 +3,15 @@
     "001": {
       "id": "001",
       "location": {
-        "lat": 10.935007, 
-        "lng": 76.743286,
+        "lat": 10.934135,
+        "lng": 76.744242,
         "name": "Main Library - Sensor Dustbin 1"
       },
       "status": "empty",
       "last_updated": "2025-10-08T17:14:49.530103",
       "sensor_type": "ultrasonic",
-      "sensor_health": "good"
+      "sensor_health": "good",
+      "battery_level": 80
     },
     "002": {
       "id": "002",

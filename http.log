@@ -1,0 +1,6 @@
+127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /klean.html HTTP/1.1" 304 -
+127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /styles.css HTTP/1.1" 304 -
+127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /api.js HTTP/1.1" 304 -
+127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /script.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Oct/2025 20:28:35] code 404, message File not found
+127.0.0.1 - - [08/Oct/2025 20:28:35] "GET /favicon.ico HTTP/1.1" 404 -

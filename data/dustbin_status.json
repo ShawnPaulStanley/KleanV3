@@ -1,0 +1,65 @@
+{
+  "dustbins": {
+    "001": {
+      "id": "001",
+      "location": {
+        "lat": 17.5449,
+        "lng": 78.5718,
+        "name": "Main Library - Dustbin 1"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T20:28:51.222662",
+      "sensor_type": "ultrasonic",
+      "battery_level": 97
+    },
+    "002": {
+      "id": "002",
+      "location": {
+        "lat": 17.5454,
+        "lng": 78.572,
+        "name": "Mess Area - Dustbin 2"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T19:11:47.006791",
+      "sensor_type": "ultrasonic",
+      "battery_level": 70
+    },
+    "003": {
+      "id": "003",
+      "location": {
+        "lat": 17.5442,
+        "lng": 78.5715,
+        "name": "Hostel Block - Dustbin 3"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T19:11:47.509503",
+      "sensor_type": "ultrasonic",
+      "battery_level": 94
+    },
+    "004": {
+      "id": "004",
+      "location": {
+        "lat": 17.5449,
+        "lng": 78.5718,
+        "name": "Dustbin 004"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T19:11:48.013210",
+      "sensor_type": "ultrasonic",
+      "battery_level": 91
+    },
+    "005": {
+      "id": "005",
+      "location": {
+        "lat": 17.5449,
+        "lng": 78.5718,
+        "name": "Dustbin 005"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T19:11:48.515988",
+      "sensor_type": "ultrasonic",
+      "battery_level": 75
+    }
+  },
+  "last_sync": "2025-10-08T20:28:51.222960"
+}

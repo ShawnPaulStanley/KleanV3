@@ -1,0 +1,120 @@
+INFO:__main__:Starting Klean Unified Waste Management System...
+INFO:__main__:Reports will be stored in: /home/jerem/git repos/KleanV3/data/reports.json
+INFO:__main__:Images will be stored in: /home/jerem/git repos/KleanV3/data/images
+INFO:__main__:Dustbin data will be stored in: /home/jerem/git repos/KleanV3/data/dustbin_status.json
+INFO:__main__:Dustbin logs will be stored in: /home/jerem/git repos/KleanV3/data/dustbin_logs.json
+ * Serving Flask app 'app'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.109.242.75:5000
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+INFO:__main__:Starting Klean Unified Waste Management System...
+INFO:__main__:Reports will be stored in: /home/jerem/git repos/KleanV3/data/reports.json
+INFO:__main__:Images will be stored in: /home/jerem/git repos/KleanV3/data/images
+INFO:__main__:Dustbin data will be stored in: /home/jerem/git repos/KleanV3/data/dustbin_status.json
+INFO:__main__:Dustbin logs will be stored in: /home/jerem/git repos/KleanV3/data/dustbin_logs.json
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 124-700-409
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:10] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "GET /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759914430489_3404bbcd.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759916965317_367eb167.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759913636440_bc157d28.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759913449084_e9c21b21.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759913694976_762417c2.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759931445422_29052194.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759912938369_ae78bd79.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759912653947_08926f53.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759911467735_ec696918.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759911063841_fb5e9ccd.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:11] "[36mGET /api/images/report_1759911038194_20a84e7c.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:12] "GET /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:19] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:34] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:26:49] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:04] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:09] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:09] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:10] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:10] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "OPTIONS /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "POST /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "GET /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "GET /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "GET /api/images/report_1759935440122_1221decf.jpeg HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759931445422_29052194.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759916965317_367eb167.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759935440122_1221decf.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759914430489_3404bbcd.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759913694976_762417c2.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759913636440_bc157d28.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759913449084_e9c21b21.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759912938369_ae78bd79.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759912653947_08926f53.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759911467735_ec696918.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759911063841_fb5e9ccd.png HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "[36mGET /api/images/report_1759911038194_20a84e7c.jpeg HTTP/1.1[0m" 304 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:20] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:28] "OPTIONS /api/reports/1759935440122/approve HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:28] "POST /api/reports/1759935440122/approve HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:28] "GET /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:28] "GET /api/reports HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:34] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:41] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:41] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:27:49] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:04] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:10] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:10] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:19] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:__main__:Status change logged: 001 empty -> full
+INFO:__main__:Dustbin data saved successfully
+INFO:__main__:Updated dustbin 001: status=full
+INFO:werkzeug:10.109.242.104 - - [08/Oct/2025 20:28:27] "POST /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:30] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:30] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:31] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:35] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:40] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:40] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:28:49] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:__main__:Status change logged: 001 full -> empty
+INFO:__main__:Dustbin data saved successfully
+INFO:__main__:Updated dustbin 001: status=empty
+INFO:werkzeug:10.109.242.104 - - [08/Oct/2025 20:28:51] "POST /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:04] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:11] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:11] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:19] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:35] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:41] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:41] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:29:50] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:30:05] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:30:11] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:30:11] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:30:19] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:30:34] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:30:49] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:31:04] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:31:10] "GET /api/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:31:10] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:31:19] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:31:34] "GET /api/dustbin/status HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in '/home/jerem/git repos/KleanV3/app.py', reloading
+INFO:werkzeug: * Restarting with stat
+INFO:__main__:Starting Klean Unified Waste Management System...
+INFO:__main__:Reports will be stored in: /home/jerem/git repos/KleanV3/data/reports.json
+INFO:__main__:Images will be stored in: /home/jerem/git repos/KleanV3/data/images
+INFO:__main__:Dustbin data will be stored in: /home/jerem/git repos/KleanV3/data/dustbin_status.json
+INFO:__main__:Dustbin logs will be stored in: /home/jerem/git repos/KleanV3/data/dustbin_logs.json
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 124-700-409
+INFO:werkzeug:127.0.0.1 - - [08/Oct/2025 20:31:49] "GET /api/dustbin/status HTTP/1.1" 200 -

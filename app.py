@@ -85,40 +85,40 @@ def load_dustbin_data():
             initial_data = {
                 "dustbins": {
                     "001": {
-                        "id": "001",
-                        "location": {
-                            "lat": 17.5449,
-                            "lng": 78.5718,
-                            "name": "Main Library - Dustbin 1"
-                        },
-                        "status": "empty",
-                        "last_updated": datetime.now().isoformat(),
-                        "sensor_type": "ultrasonic",
-                        "battery_level": 85
+                    "id": "001",
+                    "location": {
+                        "lat": 10.935007, 
+                        "lng": 76.743286,
+                        "name": "Main Library - Sensor Dustbin 1"
+                    },
+                    "status": "empty",
+                    "last_updated": "2025-10-08T17:14:49.530103",
+                    "sensor_type": "ultrasonic",
+                    "sensor_health": "good"
                     },
                     "002": {
-                        "id": "002", 
-                        "location": {
-                            "lat": 17.5454,
-                            "lng": 78.5720,
-                            "name": "Mess Area - Dustbin 2"
-                        },
-                        "status": "empty",
-                        "last_updated": datetime.now().isoformat(),
-                        "sensor_type": "ultrasonic",
-                        "battery_level": 92
+                    "id": "002",
+                    "location": {
+                        "lat": 10.940012,
+                        "lng": 76.74113,
+                        "name": "Mess Area - Sensor Dustbin 2"
+                    },
+                    "status": "empty",
+                    "last_updated": "2025-10-08T12:00:00.000Z",
+                    "sensor_type": "ultrasonic",
+                    "sensor_health": "good"
                     },
                     "003": {
-                        "id": "003",
-                        "location": {
-                            "lat": 17.5442,
-                            "lng": 78.5715,
-                            "name": "Hostel Block - Dustbin 3"
-                        },
-                        "status": "empty",
-                        "last_updated": datetime.now().isoformat(),
-                        "sensor_type": "ultrasonic",
-                        "battery_level": 78
+                    "id": "003",
+                    "location": {
+                        "lat": 10.936778,
+                        "lng": 76.742724,
+                        "name": "Hostel Block - Sensor Dustbin 3"
+                    },
+                    "status": "empty",
+                    "last_updated": "2025-10-08T12:00:00.000Z",
+                    "sensor_type": "ultrasonic",
+                    "sensor_health": "good"
                     }
                 },
                 "last_sync": datetime.now().isoformat()
@@ -172,7 +172,7 @@ def log_status_change(dustbin_id, old_status, new_status):
 # ============= API ENDPOINTS =============
 
 # Waste Reports Endpoints
-@app.route('/reports', methods=['GET'])
+@app.route('/api/reports', methods=['GET'])
 def get_reports():
     """Get all reports"""
     try:
@@ -181,7 +181,7 @@ def get_reports():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/reports', methods=['POST'])
+@app.route('/api/reports', methods=['POST'])
 def submit_report():
     """Submit a new waste report"""
     try:
@@ -221,7 +221,7 @@ def submit_report():
         logger.error(f"Error submitting report: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/reports/<int:report_id>/approve', methods=['POST'])
+@app.route('/api/reports/<int:report_id>/approve', methods=['POST'])
 def approve_report(report_id):
     """Approve a waste report"""
     try:
@@ -246,7 +246,7 @@ def approve_report(report_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/images/<filename>')
+@app.route('/api/images/<filename>')
 def serve_image(filename):
     """Serve uploaded images"""
     try:
@@ -255,7 +255,7 @@ def serve_image(filename):
         return jsonify({'error': 'Image not found'}), 404
 
 # Dustbin Monitoring Endpoints
-@app.route('/dustbins/status', methods=['POST'])
+@app.route('/api/dustbin/status', methods=['POST'])
 def update_dustbin_status():
     """
     Endpoint to receive ESP32 sensor data
@@ -328,7 +328,7 @@ def update_dustbin_status():
         logger.error(f"Error updating dustbin status: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/dustbins/status', methods=['GET'])
+@app.route('/api/dustbin/status', methods=['GET'])
 def get_dustbin_status():
     """Get current status of all dustbins"""
     try:
@@ -338,7 +338,7 @@ def get_dustbin_status():
         logger.error(f"Error getting dustbin status: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/dustbins/logs', methods=['GET'])
+@app.route('/api/dustbin/logs', methods=['GET'])
 def get_dustbin_logs():
     """Get dustbin status change logs"""
     try:
@@ -352,7 +352,7 @@ def get_dustbin_logs():
         logger.error(f"Error getting dustbin logs: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/dustbins/simulate', methods=['POST'])
+@app.route('/api/dustbin/simulate', methods=['POST'])
 def simulate_sensor_data():
     """Simulate ESP32 sensor data for testing"""
     try:
@@ -369,7 +369,7 @@ def simulate_sensor_data():
         return jsonify({'error': 'Internal server error'}), 500
 
 # Dashboard/Analytics Endpoints
-@app.route('/dashboard/summary', methods=['GET'])
+@app.route('/api/dashboard/summary', methods=['GET'])
 def get_dashboard_summary():
     """Get summary data for dashboard"""
     try:
@@ -411,7 +411,7 @@ def get_dashboard_summary():
         logger.error(f"Error getting dashboard summary: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/health')
+@app.route('/api/health')
 def health_check():
     """Health check endpoint"""
     dustbin_data = load_dustbin_data()

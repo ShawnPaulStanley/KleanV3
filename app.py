@@ -1,26 +1,78 @@
 #!/usr/bin/env python3
 """
-Klean V3 - ESP32 Dustbin Monitoring Backend
-Flask server to handle ESP32 sensor data and provide API endpoints
+Klean - Unified Waste Management System
+Combines waste reporting and dustbin monitoring functionality
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
 import os
+import base64
+import uuid
 from datetime import datetime
+import mimetypes
 import logging
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend integration
+CORS(app)  # Enable CORS for all routes
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-DUSTBIN_STATUS_FILE = 'dustbin_status.json'
-LOG_FILE = 'dustbin_logs.json'
+REPORTS_FILE = 'data/reports.json'
+IMAGES_DIR = 'data/images'
+DATA_DIR = 'data'
+DUSTBIN_STATUS_FILE = 'data/dustbin_status.json'
+DUSTBIN_LOG_FILE = 'data/dustbin_logs.json'
+
+# Ensure data directories exist
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(IMAGES_DIR, exist_ok=True)
+
+# ============= WASTE REPORTS FUNCTIONALITY =============
+
+def load_reports():
+    """Load reports from JSON file"""
+    if os.path.exists(REPORTS_FILE):
+        with open(REPORTS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_reports(reports):
+    """Save reports to JSON file"""
+    with open(REPORTS_FILE, 'w') as f:
+        json.dump(reports, f, indent=2)
+
+def save_image(base64_data, report_id):
+    """Save base64 image data to file and return filename"""
+    try:
+        # Extract image data and format
+        if ',' in base64_data:
+            header, data = base64_data.split(',', 1)
+            # Extract format from header (e.g., "data:image/jpeg;base64")
+            format_part = header.split(';')[0].split('/')[1]
+        else:
+            data = base64_data
+            format_part = 'jpg'  # default
+        
+        # Generate unique filename
+        filename = f"report_{report_id}_{uuid.uuid4().hex[:8]}.{format_part}"
+        filepath = os.path.join(IMAGES_DIR, filename)
+        
+        # Decode and save image
+        image_data = base64.b64decode(data)
+        with open(filepath, 'wb') as f:
+            f.write(image_data)
+        
+        return filename
+    except Exception as e:
+        logger.error(f"Error saving image: {e}")
+        return None
+
+# ============= DUSTBIN MONITORING FUNCTIONALITY =============
 
 def load_dustbin_data():
     """Load dustbin status data from JSON file"""
@@ -99,8 +151,8 @@ def log_status_change(dustbin_id, old_status, new_status):
         
         # Load existing logs
         logs = []
-        if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, 'r') as f:
+        if os.path.exists(DUSTBIN_LOG_FILE):
+            with open(DUSTBIN_LOG_FILE, 'r') as f:
                 logs = json.load(f)
         
         logs.append(log_entry)
@@ -110,14 +162,100 @@ def log_status_change(dustbin_id, old_status, new_status):
             logs = logs[-1000:]
         
         # Save logs
-        with open(LOG_FILE, 'w') as f:
+        with open(DUSTBIN_LOG_FILE, 'w') as f:
             json.dump(logs, f, indent=2)
             
         logger.info(f"Status change logged: {dustbin_id} {old_status} -> {new_status}")
     except Exception as e:
         logger.error(f"Error logging status change: {e}")
 
-@app.route('/api/dustbin/status', methods=['POST'])
+# ============= API ENDPOINTS =============
+
+# Waste Reports Endpoints
+@app.route('/reports', methods=['GET'])
+def get_reports():
+    """Get all reports"""
+    try:
+        reports = load_reports()
+        return jsonify({'success': True, 'reports': reports})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/reports', methods=['POST'])
+def submit_report():
+    """Submit a new waste report"""
+    try:
+        data = request.json
+        
+        # Generate unique report ID
+        report_id = int(datetime.now().timestamp() * 1000)
+        
+        # Save image if provided
+        image_filename = None
+        if 'photoData' in data and data['photoData']:
+            image_filename = save_image(data['photoData'], report_id)
+        
+        # Create report object
+        report = {
+            'id': report_id,
+            'location': data.get('location', {}),
+            'notes': data.get('notes', ''),
+            'timestamp': datetime.now().isoformat(),
+            'status': 'reported',
+            'image_filename': image_filename,
+            'original_filename': data.get('fileName', 'unknown.jpg')
+        }
+        
+        # Load existing reports and add new one
+        reports = load_reports()
+        reports.append(report)
+        save_reports(reports)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Report submitted successfully',
+            'report_id': report_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error submitting report: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/reports/<int:report_id>/approve', methods=['POST'])
+def approve_report(report_id):
+    """Approve a waste report"""
+    try:
+        reports = load_reports()
+        
+        # Find and update the report
+        for report in reports:
+            if report['id'] == report_id:
+                report['status'] = 'approved'
+                report['approved_at'] = datetime.now().isoformat()
+                break
+        else:
+            return jsonify({'success': False, 'error': 'Report not found'}), 404
+        
+        save_reports(reports)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Report approved successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/images/<filename>')
+def serve_image(filename):
+    """Serve uploaded images"""
+    try:
+        return send_from_directory(IMAGES_DIR, filename)
+    except Exception as e:
+        return jsonify({'error': 'Image not found'}), 404
+
+# Dustbin Monitoring Endpoints
+@app.route('/dustbins/status', methods=['POST'])
 def update_dustbin_status():
     """
     Endpoint to receive ESP32 sensor data
@@ -190,7 +328,7 @@ def update_dustbin_status():
         logger.error(f"Error updating dustbin status: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/dustbin/status', methods=['GET'])
+@app.route('/dustbins/status', methods=['GET'])
 def get_dustbin_status():
     """Get current status of all dustbins"""
     try:
@@ -200,12 +338,12 @@ def get_dustbin_status():
         logger.error(f"Error getting dustbin status: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/dustbin/logs', methods=['GET'])
+@app.route('/dustbins/logs', methods=['GET'])
 def get_dustbin_logs():
     """Get dustbin status change logs"""
     try:
-        if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, 'r') as f:
+        if os.path.exists(DUSTBIN_LOG_FILE):
+            with open(DUSTBIN_LOG_FILE, 'r') as f:
                 logs = json.load(f)
             return jsonify({'logs': logs})
         else:
@@ -214,7 +352,7 @@ def get_dustbin_logs():
         logger.error(f"Error getting dustbin logs: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/dustbin/simulate', methods=['POST'])
+@app.route('/dustbins/simulate', methods=['POST'])
 def simulate_sensor_data():
     """Simulate ESP32 sensor data for testing"""
     try:
@@ -222,28 +360,77 @@ def simulate_sensor_data():
         dustbin_id = data.get('dustbin_id', '001')
         status = data.get('status', 'full')
         
-        # Simulate ESP32 POST request
+        # Update request data for simulation
+        request.json = data
         return update_dustbin_status()
         
     except Exception as e:
         logger.error(f"Error simulating sensor data: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/health', methods=['GET'])
+# Dashboard/Analytics Endpoints
+@app.route('/dashboard/summary', methods=['GET'])
+def get_dashboard_summary():
+    """Get summary data for dashboard"""
+    try:
+        reports = load_reports()
+        dustbin_data = load_dustbin_data()
+        
+        # Count reports by status
+        report_stats = {'reported': 0, 'approved': 0}
+        for report in reports:
+            status = report.get('status', 'reported')
+            report_stats[status] = report_stats.get(status, 0) + 1
+        
+        # Count dustbins by status
+        dustbin_stats = {'full': 0, 'empty': 0, 'partial': 0}
+        low_battery_count = 0
+        
+        for dustbin in dustbin_data.get('dustbins', {}).values():
+            status = dustbin.get('status', 'empty')
+            dustbin_stats[status] = dustbin_stats.get(status, 0) + 1
+            
+            if dustbin.get('battery_level', 100) < 20:
+                low_battery_count += 1
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'reports': {
+                    'total': len(reports),
+                    'by_status': report_stats
+                },
+                'dustbins': {
+                    'total': len(dustbin_data.get('dustbins', {})),
+                    'by_status': dustbin_stats,
+                    'low_battery': low_battery_count
+                }
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting dashboard summary: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/health')
 def health_check():
     """Health check endpoint"""
+    dustbin_data = load_dustbin_data()
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'service': 'Klean V3 Dustbin Monitor'
+        'service': 'Klean Unified Waste Management System',
+        'reports_count': len(load_reports()),
+        'dustbins_count': len(dustbin_data.get('dustbins', {}))
     })
 
 if __name__ == '__main__':
-    logger.info("Starting Klean V3 Dustbin Monitoring Server...")
-    logger.info(f"Dustbin data file: {DUSTBIN_STATUS_FILE}")
-    logger.info(f"Log file: {LOG_FILE}")
+    logger.info("Starting Klean Unified Waste Management System...")
+    logger.info(f"Reports will be stored in: {os.path.abspath(REPORTS_FILE)}")
+    logger.info(f"Images will be stored in: {os.path.abspath(IMAGES_DIR)}")
+    logger.info(f"Dustbin data will be stored in: {os.path.abspath(DUSTBIN_STATUS_FILE)}")
+    logger.info(f"Dustbin logs will be stored in: {os.path.abspath(DUSTBIN_LOG_FILE)}")
     
-    # Initialize data file if it doesn't exist
+    # Initialize data files if they don't exist
     load_dustbin_data()
     
     app.run(debug=True, host='0.0.0.0', port=5000)

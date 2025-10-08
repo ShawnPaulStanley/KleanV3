@@ -56,6 +56,18 @@
           </div>
           <div class="sidebar-label">Analytics</div>
         </div>
+        
+        <div class="sidebar-item" id="reports-btn" onclick="scrollToSection('reports-section')" title="Reports">
+          <div class="sidebar-icon">
+            <div class="icon-reports">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2"></rect>
+                <path d="M7 8.5l2.5 3 1.8-2.4 3.7 4.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="sidebar-label">Reports</div>
+        </div>
       </div>
       
       <!-- Theme Toggle -->
@@ -246,6 +258,25 @@
               <span>Analyzing data...</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Reports Section -->
+      <div id="reports-section" class="content-section">
+        <div class="section-header">
+          <h2>Civilian Waste Reports</h2>
+          <p>Review and manage waste spot reports submitted by civilians</p>
+        </div>
+        
+        <div class="controls-grid" style="margin-bottom: 20px;">
+          <button class="control-btn primary" onclick="refreshReports()">Refresh Reports</button>
+          <div style="display: flex; align-items: center; padding: 8px 16px; background: var(--surface-1); border-radius: 6px; color: var(--text-soft);">
+            <span id="reports-count">0</span> reports total
+          </div>
+        </div>
+
+        <div id="reports-grid" class="reports-grid">
+          <!-- Reports will be populated dynamically -->
         </div>
       </div>
     </div>
@@ -491,7 +522,249 @@
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
   
+  <!-- API Configuration -->
+  <script src="api.js"></script>
+  
   <!-- Custom Script -->
   <script src="script.js"></script>
+
+  <!-- Reports Integration Script -->
+  <script>
+    (function() {
+      let reportsLayer = null;
+      
+      // Load reports when the page loads and populate the reports section
+      async function loadReports() {
+        const grid = document.getElementById('reports-grid');
+        const count = document.getElementById('reports-count');
+        
+        if (!grid || !count) return; // Elements not loaded yet
+        
+        try {
+          // Try to load from backend first
+          let reports = [];
+          try {
+            reports = await WasteAPI.getReports();
+            console.log('Loaded reports from backend:', reports.length);
+          } catch (error) {
+            console.warn('Backend unavailable, falling back to localStorage:', error);
+            // Fallback to localStorage
+            const localData = localStorage.getItem('wasteReports') || '[]';
+            reports = JSON.parse(localData);
+          }
+          
+          grid.innerHTML = '';
+          count.textContent = reports.length;
+          
+          if (!reports.length) {
+            grid.innerHTML = `
+              <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-soft);">
+                <div style="font-size: 1.2rem; margin-bottom: 8px;">No reports found</div>
+                <div style="font-size: 0.9rem;">Civilians can submit waste spot reports using the civilian interface.</div>
+              </div>
+            `;
+            return;
+          }
+          
+          // Sort reports by timestamp (newest first)
+          reports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          reports.forEach(report => {
+            const card = document.createElement('div');
+            card.className = 'info-card';
+            card.style.cssText = `
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              padding: 16px;
+              background: var(--surface-1);
+              border: 1px solid var(--surface-border);
+              border-radius: 8px;
+              box-shadow: var(--shadow);
+            `;
+            
+            const statusColor = report.status === 'approved' ? '#4CAF50' : '#FF9800';
+            const statusText = report.status === 'approved' ? 'Approved' : 'Pending';
+            
+            // Determine image source (backend or base64 fallback)
+            const imageSource = report.image_filename 
+              ? WasteAPI.getImageUrl(report.image_filename)
+              : report.photoData || '';
+            
+            card.innerHTML = `
+              <div style="height: 160px; border-radius: 6px; overflow: hidden; background: #111; cursor: pointer;" onclick="showImageFullsize('${imageSource}')">
+                <img src="${imageSource}" alt="waste report" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='${report.photoData || ''}'">
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.85rem; color: var(--text-soft);">
+                  ${new Date(report.timestamp).toLocaleDateString()} ${new Date(report.timestamp).toLocaleTimeString()}
+                </div>
+                <div style="padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; color: white; background: ${statusColor};">
+                  ${statusText}
+                </div>
+              </div>
+              
+              <div style="font-size: 0.9rem; color: var(--text-base);">
+                <strong>Location:</strong><br>
+                Lat: ${report.location.lat.toFixed(5)}<br>
+                Lng: ${report.location.lng.toFixed(5)}
+              </div>
+              
+              ${report.notes ? `
+                <div style="font-size: 0.9rem; color: var(--text-soft); font-style: italic; border-left: 3px solid var(--surface-border); padding-left: 8px;">
+                  "${report.notes}"
+                </div>
+              ` : ''}
+              
+              <div style="display: flex; gap: 8px; margin-top: auto;">
+                <button class="control-btn ${report.status === 'approved' ? 'secondary' : 'primary'}" 
+                        style="width: 100%; font-size: 0.8rem;" 
+                        onclick="approveReport(${report.id})"
+                        ${report.status === 'approved' ? 'disabled' : ''}>
+                  ${report.status === 'approved' ? '✓ Approved' : 'Approve & Add to Map'}
+                </button>
+              </div>
+            `;
+            
+            grid.appendChild(card);
+          });
+          
+        } catch (error) {
+          console.error('Error loading reports:', error);
+          grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-soft);">
+              <div style="font-size: 1.2rem; margin-bottom: 8px; color: #ff6b6b;">Error Loading Reports</div>
+              <div style="font-size: 0.9rem;">Please check if the backend server is running.</div>
+            </div>
+          `;
+        }
+      }
+
+      // Show image in fullsize modal
+      window.showImageFullsize = function(imageSrc) {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+          background: rgba(0,0,0,0.9); display: flex; align-items: center; 
+          justify-content: center; z-index: 10000; cursor: pointer;
+        `;
+        
+        const img = document.createElement('img');
+        img.src = imageSrc;
+        img.style.cssText = 'max-width: 90%; max-height: 90%; object-fit: contain;';
+        
+        modal.appendChild(img);
+        modal.onclick = () => document.body.removeChild(modal);
+        document.body.appendChild(modal);
+      };
+
+      // Approve a report
+      window.approveReport = async function(id) {
+        try {
+          // Try to approve via backend first
+          try {
+            await WasteAPI.approveReport(id);
+            console.log('Report approved via backend');
+          } catch (error) {
+            console.warn('Backend unavailable, updating locally:', error);
+            // Fallback to localStorage update
+            const localReports = JSON.parse(localStorage.getItem('wasteReports') || '[]');
+            const index = localReports.findIndex(r => r.id === id);
+            if (index !== -1) {
+              localReports[index].status = 'approved';
+              localStorage.setItem('wasteReports', JSON.stringify(localReports));
+            }
+          }
+          
+          // Find the report to get location data
+          let reports = [];
+          try {
+            reports = await WasteAPI.getReports();
+          } catch (error) {
+            const localData = localStorage.getItem('wasteReports') || '[]';
+            reports = JSON.parse(localData);
+          }
+          
+          const report = reports.find(r => r.id === id);
+          if (!report) {
+            alert('Report not found');
+            return;
+          }
+          
+          // Refresh the display
+          loadReports();
+          
+          // Add this location as a collection point on the map (with popup info)
+          if (window.map && window.addCollectionPoint) {
+            console.log('Creating LatLng from report.location:', report.location);
+            const latlng = L.latLng(report.location.lat, report.location.lng);
+            console.log('Created LatLng object:', latlng);
+            console.log('LatLng properties - lat:', latlng.lat, 'lng:', latlng.lng);
+            
+            // Build popup content with note and image
+            let popupContent = `<div style='min-width:180px;max-width:240px;'>`;
+            popupContent += `<div style='font-weight:bold;margin-bottom:4px;'>Civilian Report #${report.id}</div>`;
+            if (report.notes) {
+              popupContent += `<div style='font-size:0.95em;margin-bottom:6px;'><em>"${report.notes}"</em></div>`;
+            }
+            if (report.image) {
+              popupContent += `<img src='${report.image}' alt='Report Photo' style='width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-bottom:6px;'/>`;
+            }
+            popupContent += `<div style='font-size:0.85em;color:#666;'>Lat: ${report.location.lat.toFixed(5)}, Lng: ${report.location.lng.toFixed(5)}</div>`;
+            popupContent += `</div>`;
+            
+            console.log('Calling addCollectionPoint with:', latlng, `Report #${report.id}`, 'popup content length:', popupContent.length);
+            window.addCollectionPoint(latlng, `Report #${report.id}`, popupContent);
+            scrollToSection('map-section');
+            setTimeout(() => {
+              alert(`Report approved and added to collection route!\nLocation: ${report.location.lat.toFixed(5)}, ${report.location.lng.toFixed(5)}`);
+            }, 500);
+          } else {
+            console.error('Map or addCollectionPoint function not available');
+            console.log('window.map:', window.map);
+            console.log('window.addCollectionPoint:', window.addCollectionPoint);
+            alert('Report approved! Please refresh the page to enable map integration.');
+          }
+          
+        } catch (error) {
+          console.error('Error approving report:', error);
+          alert('Error approving report. Please try again.');
+        }
+      };
+
+      // Refresh reports
+      window.refreshReports = function() {
+        loadReports();
+      };
+
+      // Auto-refresh when localStorage changes (from other tabs)
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'wasteReports') {
+          loadReports();
+        }
+      });
+
+      // Load reports when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadReports);
+      } else {
+        loadReports();
+      }
+
+      // Also load reports when the page is shown (for back button navigation)
+      window.addEventListener('pageshow', loadReports);
+
+      // Check backend health on startup
+      WasteAPI.checkHealth().then(health => {
+        if (health) {
+          console.log('Backend is healthy:', health);
+        } else {
+          console.warn('Backend health check failed - using localStorage fallback');
+        }
+      });
+
+    })();
+  </script>
 </body>
 </html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Spot Reporter - Karunya Institute</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Tailwind (kept minimally for utility like hidden) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <style>
+        :root {
+            --red-600:#D32F2F; --red-700:#B71C1C; --red-600-glow:rgba(211,47,47,.75); --red-600-soft:rgba(211,47,47,.45); --red-600-faint:rgba(211,47,47,.25);
+            --white:#FFFFFF; --gray-900:#1A1A1A; --gray-800:#2D2D2D; --gray-600:#4F4F4F; --gray-400:#9E9E9E; --gray-200:#E0E0E0; --gray-50:#FAFAFA;
+            --bg-gradient:linear-gradient(135deg,#1A1A1A 0%,#2D2D2D 55%,#1A1A1A 100%);
+            --surface-0:rgba(255,255,255,0.04); --surface-1:rgba(255,255,255,0.06); --surface-2:rgba(255,255,255,0.10); --surface-border:rgba(255,255,255,0.18);
+            --text-strong:#fff; --text-base:#EDEDED; --text-soft:#BDBDBD; --text-faint:#7A7A7A;
+            --focus-ring:0 0 0 2px rgba(255,255,255,.85),0 0 0 4px rgba(211,47,47,.65);
+            --shadow-sm:0 2px 4px rgba(0,0,0,.4); --shadow:0 6px 18px -4px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.45);
+            --ease-standard:cubic-bezier(.4,0,.2,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+            --transition-base:300ms var(--ease-standard); --transition-quick:120ms var(--ease-standard);
+            --radius-xs:3px; --radius-sm:6px; --radius:10px; --radius-lg:18px; --radius-round:50%;
+            --container-width:880px; --cursor-size:40px;
+        }
+        html,body {margin:0;padding:0;font-family:'Roboto',sans-serif;background:var(--bg-gradient);color:var(--text-base);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+        body {display:flex;flex-direction:column;align-items:center;}
+        ::selection {background:var(--red-600);color:var(--white);} .hidden{display:none!important;}
+    .app-frame{max-width:var(--container-width);width:100%;margin:2rem auto 4rem;padding:clamp(1rem,2.5vw,2.25rem);background:var(--surface-0);border:1px solid var(--surface-border);backdrop-filter:blur(8px) saturate(140%);border-radius:var(--radius-lg);box-shadow:var(--shadow);position:relative;overflow:hidden;z-index:10;transition:background var(--transition-base),border-color var(--transition-base),color var(--transition-base);}
+    header.app-head{text-align:left;position:relative;padding-right:4.5rem;}
+        .brand-heading{font-family:'Press Start 2P',monospace;text-transform:uppercase;line-height:1.15;text-shadow:0 0 4px var(--red-600-soft),0 0 10px var(--red-600-faint),0 0 18px var(--red-700);position:relative;letter-spacing:.05em;font-size:clamp(1.4rem,2.2vw,2.6rem);}
+        .brand-heading:after{content:'';position:absolute;left:0;bottom:-6px;width:90px;height:3px;background:linear-gradient(90deg,var(--red-600),transparent);border-radius:var(--radius-xs);} .subhead{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-top:.9rem;}
+        .section{margin-top:2.25rem;} .section:first-of-type{margin-top:1.25rem;}
+        .meta-label{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;font-weight:600;color:var(--text-faint);}
+        .helper{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-top:.4rem;}
+        .surface{background:var(--surface-1);border:1px solid var(--surface-border);border-radius:var(--radius);padding:1.1rem 1.25rem;position:relative;}
+        .surface.depth{background:var(--surface-2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),var(--shadow-sm);}
+        .dropzone{border:2px dashed var(--surface-border);border-radius:var(--radius);padding:2.25rem 1.25rem;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.02));text-align:center;cursor:pointer;transition:border-color var(--transition-base),background var(--transition-base),transform var(--transition-quick);} .dropzone:hover{border-color:var(--red-600);background:linear-gradient(145deg,rgba(211,47,47,.12),rgba(255,255,255,.03));transform:translateY(-2px);} .preview img{max-height:140px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--surface-border);box-shadow:var(--shadow-sm);animation:fadeIn .4s var(--ease-standard);} @keyframes fadeIn{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
+        .btn{--btn-bg:var(--surface-2);--btn-border:var(--surface-border);--btn-color:var(--text-base);font-weight:500;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.85rem 1.35rem;border:1px solid var(--btn-border);border-radius:var(--radius-sm);background:var(--btn-bg);color:var(--btn-color);display:inline-flex;gap:.55rem;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:background var(--transition-base),transform var(--transition-quick),border-color var(--transition-quick),box-shadow var(--transition-base);will-change:transform;mix-blend-mode:screen;}
+        .btn:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.08),transparent 70%);opacity:0;transition:opacity var(--transition-base);} .btn:hover{transform:translateY(-3px) scale(1.05);border-color:var(--red-600);} .btn:hover:before{opacity:1;} .btn:active{transform:translateY(0) scale(.97);transition:transform 80ms var(--ease-standard);} .btn-primary{--btn-bg:linear-gradient(145deg,var(--red-600),var(--red-700));--btn-border:rgba(255,255,255,.25);--btn-color:#fff;box-shadow:0 0 0 1px rgba(211,47,47,.4),0 6px 18px -4px rgba(211,47,47,.55);} .btn-primary:hover{box-shadow:0 0 0 1px rgba(211,47,47,.65),0 8px 22px -4px rgba(211,47,47,.75);} .btn-outline{--btn-bg:rgba(255,255,255,.04);--btn-border:var(--red-600-soft);} .btn-outline:hover{background:rgba(211,47,47,.08);border-color:var(--red-600);} .full-width{width:100%;}
+        .field{display:flex;flex-direction:column;gap:.45rem;margin-bottom:1.4rem;} .field label{font-size:.6rem;font-weight:600;letter-spacing:.15em;color:var(--text-soft);text-transform:uppercase;}
+        .input,textarea{background:var(--surface-1);border:1px solid var(--surface-border);color:var(--text-base);padding:.85rem 1rem;font-size:.8rem;border-radius:var(--radius-sm);line-height:1.35;transition:border-color var(--transition-quick),background var(--transition-base),box-shadow var(--transition-base);resize:vertical;min-height:110px;} .input:focus,textarea:focus{outline:none;border-color:var(--red-600);box-shadow:0 0 0 1px var(--red-600),0 0 10px var(--red-600-soft);} 
+        #map{height:300px;border-radius:var(--radius);border:1px solid var(--surface-border);background:#111;margin-top:.75rem;}
+        .coords-bar{margin-top:.65rem;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-family:'Roboto',monospace;background:var(--surface-1);border:1px solid var(--surface-border);padding:.4rem .65rem;border-radius:var(--radius-sm);}
+        /* Loader / Overlays */
+        #loader,#successMessage{backdrop-filter:blur(4px);}
+        .panel{background:var(--surface-1);border:1px solid var(--surface-border);box-shadow:var(--shadow);border-radius:var(--radius-lg);}
+    .spinner{border:4px solid rgba(255,255,255,0.08);width:42px;height:42px;border-radius:50%;border-left-color:var(--red-600);animation:spin 1s linear infinite;} @keyframes spin{to{transform:rotate(360deg);}}
+    /* Theme Toggle */
+    .theme-toggle{position:absolute;top:.25rem;right:.25rem;display:flex;flex-direction:column;align-items:end;gap:.35rem;}
+    .theme-toggle button{font-family:'Roboto',sans-serif;}
+    .theme-toggle .toggle-btn{--btn-bg:rgba(255,255,255,0.08);--btn-border:var(--surface-border);padding:.55rem .9rem;font-size:.55rem;letter-spacing:.2em;}
+    .theme-toggle .toggle-btn span.mode-label{pointer-events:none;}
+    .theme-indicator{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--red-600),var(--red-700));box-shadow:0 0 6px var(--red-600-soft);}
+    /* Light Theme Overrides */
+    body.theme-light {--bg-gradient:linear-gradient(135deg,#FAFAFA 0%,#ECECEC 55%,#FFFFFF 100%);--surface-0:rgba(0,0,0,0.03);--surface-1:rgba(255,255,255,0.9);--surface-2:rgba(255,255,255,0.75);--surface-border:rgba(0,0,0,0.12);--text-base:#2B2B2B;--text-soft:#4F4F4F;--text-faint:#7A7A7A;--shadow:0 4px 14px -2px rgba(0,0,0,.18),0 2px 4px rgba(0,0,0,.1);} 
+    body.theme-light .brand-heading{text-shadow:0 0 4px rgba(211,47,47,.35),0 0 10px rgba(211,47,47,.25);} 
+    body.theme-light .dropzone{background:linear-gradient(145deg,rgba(0,0,0,.02),rgba(0,0,0,.01));}
+    body.theme-light .btn{mix-blend-mode:normal;}
+    body.theme-light #particleCanvas{opacity:.35;}
+    body.theme-light .coords-bar{background:var(--surface-1);} 
+    body.theme-light .panel{background:var(--surface-1);} 
+    body.theme-light .btn-outline{--btn-bg:rgba(0,0,0,0.02);--btn-border:rgba(0,0,0,0.18);} 
+    body.theme-light .btn-outline:hover{background:rgba(211,47,47,0.08);} 
+    body.theme-light #cursorCore{mix-blend-mode:normal;border-color:var(--red-600);} 
+    body.theme-light .theme-toggle .toggle-btn{--btn-bg:rgba(0,0,0,0.05);} 
+        /* Particle Canvas */ #particleCanvas{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0;filter:blur(.3px) brightness(1.05);opacity:.55;}
+        /* Custom Cursor */ body.enhanced-cursor{cursor:none;} #cursorCore{position:fixed;top:0;left:0;width:var(--cursor-size);height:var(--cursor-size);margin-top:calc(var(--cursor-size)/-2);margin-left:calc(var(--cursor-size)/-2);border:2px solid var(--red-600);border-radius:var(--radius-round);pointer-events:none;z-index:999;mix-blend-mode:difference;transition:transform 180ms var(--ease-spring),border-color var(--transition-base),background var(--transition-base);} .interact-hover #cursorCore{transform:scale(1.35);background:rgba(211,47,47,.15);} .cursor-down #cursorCore{transform:scale(.55);background:rgba(211,47,47,.5);border-color:var(--red-700);} 
+        @media (max-width:780px){.app-frame{margin:1.2rem .9rem 3rem;padding:1.2rem 1.1rem;} .brand-heading{font-size:clamp(1.2rem,6vw,2rem);} }
+        @media (prefers-reduced-motion:reduce){.dropzone,.btn,#cursorCore,.spinner{animation:none!important;transition:none!important;}}
+    /* Simplified marker (override default Leaflet icon to be red) */
+    .leaflet-marker-icon.simple-red-marker{filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));}
+    .leaflet-marker-icon.simple-red-marker img{width:100%;height:100%;display:block;}
+    /* Animated custom marker */
+    .custom-marker{position:relative;width:36px;height:46px;display:flex;align-items:flex-end;justify-content:center;}
+    .custom-marker .marker-inner{position:relative;width:28px;height:28px;transform:translateY(-4px);}
+    .custom-marker .pin-svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));}
+    .custom-marker .pulse-ring{position:absolute;top:50%;left:50%;width:16px;height:16px;background:rgba(211,47,47,0.55);border-radius:50%;transform:translate(-50%, -50%) scale(.6);animation:pulseRing 2.4s ease-out infinite;box-shadow:0 0 6px rgba(211,47,47,.6),0 0 14px rgba(211,47,47,.4);}    
+    @keyframes pulseRing{0%{transform:translate(-50%, -50%) scale(.55);opacity:.85;}65%{transform:translate(-50%, -50%) scale(2.2);opacity:0;}100%{opacity:0;}}
+    .marker-bounce{animation:markerInitialBounce 1.1s ease-out 1;}
+    @keyframes markerInitialBounce{0%{transform:translateY(-22px);}40%{transform:translateY(0);}60%{transform:translateY(-10px);}80%{transform:translateY(0);}100%{transform:translateY(0);}}
+    body.theme-light .custom-marker .pulse-ring{background:rgba(211,47,47,0.4);} 
+    </style>
+</head>
+<body>
+    <canvas id="particleCanvas" aria-hidden="true"></canvas>
+    <div id="cursorCore" aria-hidden="true"></div>
+    <div class="app-frame">
+        <header class="app-head">
+            <div class="theme-toggle">
+                <button id="themeToggle" type="button" class="btn toggle-btn btn-outline" aria-label="Toggle color theme"><span class="mode-label" id="modeLabel">DARK MODE</span></button>
+            </div>
+            <h1 class="brand-heading pulse-glow">Waste Spot Reporter</h1>
+            <p class="subhead">Karunya Campus — Report & Act</p>
+        </header>
+        <main>
+            <section class="section surface depth" id="section-photo">
+                <div class="meta-label">1. Photo Evidence</div>
+                <div class="helper">Capture area clearly (avoid people)</div>
+                <div id="mobile-buttons" class="helper" style="margin-top:.75rem;display:flex;gap:.6rem;flex-wrap:wrap;">
+                    <button id="cameraBtn" class="btn btn-outline" type="button">Camera</button>
+                    <button id="galleryBtn" class="btn btn-outline" type="button">Gallery</button>
+                </div>
+                <div id="image-upload-box" class="dropzone" style="margin-top:1rem;">
+                    <div id="upload-prompt">
+                        <p class="meta-label" style="letter-spacing:.08em;">CLICK OR DROP IMAGE</p>
+                        <p class="helper" style="margin-top:.4rem;">PNG / JPG / GIF • MAX 10MB</p>
+                    </div>
+                    <div id="image-preview" class="preview hidden"></div>
+                </div>
+                <input id="photoUpload" type="file" class="hidden" accept="image/*"/>
+                <input id="cameraInput" type="file" class="hidden" accept="image/*" capture="environment"/>
+                <input id="galleryInput" type="file" class="hidden" accept="image/*"/>
+            </section>
+            <section class="section surface" id="section-location">
+                <div class="meta-label">2. Location</div>
+                <div class="helper">Drag marker to precise spot</div>
+                <div id="map"></div>
+                <div id="coords" class="coords-bar">Initializing map...</div>
+            </section>
+            <section class="section surface" id="section-notes">
+                <div class="field">
+                    <label for="notes">3. Notes (Optional)</label>
+                    <textarea id="notes" placeholder="Ex: Pile near south gate, here ~3 days."></textarea>
+                </div>
+                <button id="submitBtn" class="btn btn-primary full-width" type="button">Submit Report</button>
+            </section>
+        </main>
+    </div>
+    <div id="loader" class="hidden fixed inset-0 flex items-center justify-center z-50">
+        <div class="panel px-8 py-7 flex items-center gap-5 min-w-[260px]">
+            <div class="spinner"></div>
+            <div class="flex flex-col gap-1">
+                <span class="text-sm font-medium tracking-wide">Submitting report</span>
+                <span class="text-[10px] uppercase tracking-wider text-[var(--text-faint)]">Do not close</span>
+            </div>
+        </div>
+    </div>
+    <div id="successMessage" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div class="panel px-10 py-10 text-center max-w-sm w-full">
+            <div class="mx-auto mb-6" aria-hidden="true">
+                <svg class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h2 class="text-base font-semibold tracking-wide" style="letter-spacing:.08em; text-transform:uppercase;">Report Submitted</h2>
+            <p class="helper" style="margin-top:1rem; letter-spacing:.05em;">Stored locally in this browser.</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                <button id="closeSuccessBtn" class="btn btn-outline" type="button">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application & Effects Scripts -->
+    <script src="api.js"></script>
+    <script>
+    // State
+    let selectedFile=null; let marker; let map; let reports=JSON.parse(localStorage.getItem('wasteReports'))||[];
+    // Elements
+    const imageUploadBox=document.getElementById('image-upload-box');
+    const photoUploadInput=document.getElementById('photoUpload');
+    const cameraInput=document.getElementById('cameraInput');
+    const galleryInput=document.getElementById('galleryInput');
+    const cameraBtn=document.getElementById('cameraBtn');
+    const galleryBtn=document.getElementById('galleryBtn');
+    const imagePreview=document.getElementById('image-preview');
+    const uploadPrompt=document.getElementById('upload-prompt');
+    const coordsDiv=document.getElementById('coords');
+    const submitBtn=document.getElementById('submitBtn');
+    const loader=document.getElementById('loader');
+    const successMessage=document.getElementById('successMessage');
+    const closeSuccessBtn=document.getElementById('closeSuccessBtn');
+
+    // Map tiles locked to light style regardless of theme
+    let tileLayerRef; const lightTiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    function initializeMap(){
+        const karunyaCoords=[10.9344,76.7461];
+        map=L.map('map').setView(karunyaCoords,16);
+        tileLayerRef=L.tileLayer(lightTiles,{attribution:'&copy; OpenStreetMap'}).addTo(map);
+                // Animated HTML marker template (pulse + bounce on load)
+                const markerHtml = `
+                    <div class="custom-marker marker-bounce">
+                        <div class="pulse-ring"></div>
+                        <div class="marker-inner">
+                            <svg class="pin-svg" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                                <path fill="#D32F2F" stroke="white" stroke-width="2" d="M12.5 2C6.4 2 1.5 6.9 1.5 13c0 8.6 11 21.5 11 21.5s11-12.9 11-21.5c0-6.1-4.9-11-11-11z"/>
+                                <circle cx="12.5" cy="13" r="5" fill="white" opacity="0.85"/>
+                            </svg>
+                        </div>
+                    </div>`;
+                const animatedIcon = L.divIcon({html:markerHtml,className:'',iconSize:[36,46],iconAnchor:[18,46]});
+                marker=L.marker(karunyaCoords,{draggable:true,title:'Drag to waste location',icon:animatedIcon}).addTo(map);
+        updateCoordsDisplay(marker.getLatLng());
+        marker.on('dragend',e=>updateCoordsDisplay(e.target.getLatLng()));
+        // Allow clicking on the map to move the marker
+        map.on('click',e=>{marker.setLatLng(e.latlng); updateCoordsDisplay(e.latlng);});
+    }
+    function refreshTiles(){ /* no-op: map style fixed to light tiles */ }
+    function updateCoordsDisplay(latLng){coordsDiv.textContent=`Pinned: ${latLng.lat.toFixed(5)}, ${latLng.lng.toFixed(5)}`;}
+
+    imageUploadBox.addEventListener('click',()=>photoUploadInput.click());
+    ;[photoUploadInput,cameraInput,galleryInput].forEach(inp=>inp.addEventListener('change',handleFileSelect));
+    cameraBtn.addEventListener('click',()=>cameraInput.click());
+    galleryBtn.addEventListener('click',()=>galleryInput.click());
+    submitBtn.addEventListener('click',handleSubmit); closeSuccessBtn.addEventListener('click',resetForm);
+
+    imageUploadBox.addEventListener('dragover',e=>{e.preventDefault();imageUploadBox.classList.add('dragging');});
+    imageUploadBox.addEventListener('dragleave',e=>{e.preventDefault();imageUploadBox.classList.remove('dragging');});
+    imageUploadBox.addEventListener('drop',e=>{e.preventDefault();imageUploadBox.classList.remove('dragging');const files=e.dataTransfer.files;if(files.length){photoUploadInput.files=files;handleFileSelect({target:{files}});}});
+
+    function handleFileSelect(e){const file=e.target.files[0]; if(file && file.type.startsWith('image/')){selectedFile=file; const r=new FileReader(); r.onload=ev=>{imagePreview.innerHTML=`<img src="${ev.target.result}" alt="preview"/>`; imagePreview.classList.remove('hidden'); uploadPrompt.classList.add('hidden');}; r.readAsDataURL(file);} else {alert('Please select a valid image file.'); selectedFile=null;}}
+
+    function handleSubmit(){ 
+        if(!selectedFile){
+            alert('Please upload a photo of the waste spot.');
+            return;
+        } 
+        
+        submitBtn.disabled=true; 
+        loader.classList.remove('hidden'); 
+        
+        // Prepare report data
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const location = marker.getLatLng();
+                const reportData = {
+                    photoData: event.target.result,
+                    fileName: selectedFile.name,
+                    location: {
+                        lat: location.lat,
+                        lng: location.lng
+                    },
+                    notes: document.getElementById('notes').value || '',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Submit to backend
+                const result = await WasteAPI.submitReport(reportData);
+                
+                // Also store locally as backup (for offline functionality)
+                const localReports = JSON.parse(localStorage.getItem('wasteReports') || '[]');
+                const localReport = {
+                    id: result.report_id,
+                    photoData: event.target.result,
+                    fileName: selectedFile.name,
+                    location: reportData.location,
+                    notes: reportData.notes,
+                    timestamp: reportData.timestamp,
+                    status: 'reported'
+                };
+                localReports.push(localReport);
+                localStorage.setItem('wasteReports', JSON.stringify(localReports));
+                
+                loader.classList.add('hidden');
+                successMessage.classList.remove('hidden');
+                console.log('Report submitted successfully:', result);
+                
+            } catch (error) {
+                console.error('Error submitting report:', error);
+                
+                // Fallback to local storage if backend fails
+                try {
+                    const location = marker.getLatLng();
+                    const localReport = {
+                        id: Date.now(),
+                        photoData: event.target.result,
+                        fileName: selectedFile.name,
+                        location: {lat: location.lat, lng: location.lng},
+                        notes: document.getElementById('notes').value || '',
+                        timestamp: new Date().toISOString(),
+                        status: 'reported'
+                    };
+                    
+                    const localReports = JSON.parse(localStorage.getItem('wasteReports') || '[]');
+                    localReports.push(localReport);
+                    localStorage.setItem('wasteReports', JSON.stringify(localReports));
+                    
+                    loader.classList.add('hidden');
+                    successMessage.classList.remove('hidden');
+                    console.log('Report saved locally (backend unavailable):', localReport);
+                    
+                } catch (localError) {
+                    console.error('Failed to save locally:', localError);
+                    alert('Error saving report. Please try again.');
+                    loader.classList.add('hidden');
+                    submitBtn.disabled = false;
+                }
+            }
+        };
+        
+        reader.readAsDataURL(selectedFile);
+    }
+
+    function resetForm(){ selectedFile=null; imagePreview.innerHTML=''; imagePreview.classList.add('hidden'); uploadPrompt.classList.remove('hidden'); photoUploadInput.value=''; cameraInput.value=''; galleryInput.value=''; document.getElementById('notes').value=''; const karunya=[10.9344,76.7461]; map.setView(karunya,16); marker.setLatLng(karunya); updateCoordsDisplay(marker.getLatLng()); successMessage.classList.add('hidden'); submitBtn.disabled=false; }
+
+    // Removed export/view functions per simplification request
+
+    // Particle System
+    (function(){ const canvas=document.getElementById('particleCanvas'); const ctx=canvas.getContext('2d'); const particles=[]; const P_COUNT= (window.innerWidth<600)?45:70; const MAX_LINK=160; const mouse={x:null,y:null}; function resize(){canvas.width=window.innerWidth; canvas.height=window.innerHeight;} window.addEventListener('resize',resize); resize(); function spawn(){for(let i=0;i<P_COUNT;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-.5)*0.55,vy:(Math.random()-.5)*0.55,r:1.2+Math.random()*2.2});}} window.addEventListener('mousemove',e=>{mouse.x=e.clientX; mouse.y=e.clientY;}); function step(){ctx.clearRect(0,0,canvas.width,canvas.height); const links=[]; particles.forEach(p=>{p.x+=p.vx; p.y+=p.vy; if(p.x<0)p.x=canvas.width; if(p.x>canvas.width)p.x=0; if(p.y<0)p.y=canvas.height; if(p.y>canvas.height)p.y=0; if(mouse.x!==null){const dx=p.x-mouse.x,dy=p.y-mouse.y,dist=Math.sqrt(dx*dx+dy*dy); if(dist<140){const f=(140-dist)/140; p.vx+=(dx/dist)*f*0.4; p.vy+=(dy/dist)*f*0.4;}}}); for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){const a=particles[i],b=particles[j]; const dx=a.x-b.x,dy=a.y-b.y; const d=Math.sqrt(dx*dx+dy*dy); if(d<MAX_LINK){links.push([a,b,d/MAX_LINK]);}}} ctx.lineWidth=1; links.forEach(([a,b,r])=>{ctx.strokeStyle=`rgba(211,47,47,${0.35*(1-r)})`; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();}); particles.forEach(p=>{ctx.fillStyle='rgba(211,47,47,0.85)'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();}); requestAnimationFrame(step);} spawn(); step(); })();
+
+    // Custom Cursor
+    (function(){ const c=document.getElementById('cursorCore'); document.body.classList.add('enhanced-cursor'); let lastX=window.innerWidth/2,lastY=window.innerHeight/2,targetX=lastX,targetY=lastY; window.addEventListener('mousemove',e=>{targetX=e.clientX; targetY=e.clientY;}); window.addEventListener('mousedown',()=>document.body.classList.add('cursor-down')); window.addEventListener('mouseup',()=>document.body.classList.remove('cursor-down')); document.querySelectorAll('button, a, .dropzone, input, textarea').forEach(el=>{el.addEventListener('mouseenter',()=>document.body.classList.add('interact-hover')); el.addEventListener('mouseleave',()=>document.body.classList.remove('interact-hover'));}); function loop(){ lastX+=(targetX-lastX)*0.18; lastY+=(targetY-lastY)*0.18; c.style.transform=`translate3d(${lastX}px,${lastY}px,0)`; requestAnimationFrame(loop);} loop(); })();
+
+    // THEME HANDLING
+    const themeToggle=document.getElementById('themeToggle'); const modeLabel=document.getElementById('modeLabel');
+    function applyStoredTheme(){ const stored=localStorage.getItem('ui-theme'); if(stored==='light'){document.body.classList.add('theme-light');} else if(stored==='dark'){document.body.classList.remove('theme-light');} else { // default prefer light for accessibility
+            document.body.classList.add('theme-light');
+        } updateModeLabel(); }
+    function updateModeLabel(){ const light=document.body.classList.contains('theme-light'); modeLabel.textContent= light? 'DARK MODE' : 'LIGHT MODE'; }
+    function toggleTheme(){ document.body.classList.toggle('theme-light'); const light=document.body.classList.contains('theme-light'); localStorage.setItem('ui-theme', light? 'light':'dark'); updateModeLabel(); /* map tiles unchanged */ }
+    if(themeToggle) themeToggle.addEventListener('click',toggleTheme);
+
+    window.onload=()=>{ applyStoredTheme(); initializeMap(); console.log('Waste Reporter App ready'); console.log(`Reports found: ${reports.length}`); window.clearReports=()=>{localStorage.removeItem('wasteReports'); reports=[]; console.log('Reports cleared');}; };
+    </script>
+</body>
+</html>

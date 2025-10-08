@@ -325,6 +325,9 @@ function initializeMap() {
   map = L.map('map').setView([11.016844, 76.955307], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+  // Make map available globally for reports integration
+  window.map = map;
+
   // Handle map clicks
   map.on('click', onMapClick);
 
@@ -1067,21 +1070,21 @@ async function submitWasteData() {
   showNotification(`Added ${currentWasteEntry.type} waste data for point ${currentWasteEntry.pointNumber}${dishInfo} (${weight} kg)`, 'success');
 }
 
-function addSimpleMarker(coord, pointNumber) {
+function addSimpleMarker(coord, pointNumber, popupContent = null) {
+  console.log('addSimpleMarker called with coord:', coord, 'pointNumber:', pointNumber);
+  
   let markerContent;
   let markerStyle;
-  
   if (pointNumber === 1) {
-    // First point is the depot with pixel "K"
     markerContent = 'K';
     markerStyle = `
-      background-color: #B71C1C; 
-      color: white; 
-      border-radius: 8px; 
-      width: 28px; 
-      height: 28px; 
-      line-height: 28px; 
-      text-align: center; 
+      background-color: #B71C1C;
+      color: white;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      text-align: center;
       font-weight: bold;
       font-family: 'Press Start 2P', cursive;
       font-size: 12px;
@@ -1089,16 +1092,15 @@ function addSimpleMarker(coord, pointNumber) {
       box-shadow: 0 0 6px rgba(0,0,0,0.4);
     `;
   } else {
-    // Subsequent points are numbered starting from 1
     markerContent = pointNumber - 1;
     markerStyle = `
-      background-color: #757575; 
-      color: white; 
-      border-radius: 50%; 
-      width: 24px; 
-      height: 24px; 
-      line-height: 24px; 
-      text-align: center; 
+      background-color: #757575;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
       font-weight: bold;
       border: 2px solid white;
       box-shadow: 0 0 4px rgba(0,0,0,0.4);
@@ -1106,7 +1108,8 @@ function addSimpleMarker(coord, pointNumber) {
     `;
   }
   
-  // Add the marker
+  console.log('Creating marker at lat:', coord[1], 'lng:', coord[0]);
+  
   const marker = L.marker([coord[1], coord[0]], {
     icon: L.divIcon({
       className: 'custom-div-icon',
@@ -1114,29 +1117,51 @@ function addSimpleMarker(coord, pointNumber) {
       iconSize: pointNumber === 1 ? [32, 32] : [28, 28],
       iconAnchor: pointNumber === 1 ? [16, 16] : [14, 14]
     }),
-    zIndexOffset: 1000 // Ensure markers are on top
+    zIndexOffset: 1000
   }).addTo(map);
   
-  // Add click event for waste data collection (except depot)
-  if (pointNumber > 1) {
+  console.log('Marker created and added to map:', marker);
+  
+  if (popupContent) {
+    marker.bindPopup(popupContent);
+    console.log('Popup bound to marker with content:', popupContent);
+  } else if (pointNumber > 1) {
     marker.on('click', function(e) {
-      console.log(`Marker ${pointNumber} clicked, wasteCollectionMode:`, wasteCollectionMode);
-      console.log('Selected points array:', selectedPoints);
-      console.log('Selected points length:', selectedPoints.length);
-      e.originalEvent.stopPropagation(); // Prevent map click
-      
+      e.originalEvent.stopPropagation();
       if (wasteCollectionMode) {
-        const arrayIndex = pointNumber - 1; // pointNumber 2 -> index 1, pointNumber 3 -> index 2, etc.
-        console.log('Array index for selected points:', arrayIndex);
+        const arrayIndex = pointNumber - 1;
         startWasteCollectionForPoint(arrayIndex);
       } else {
         showNotification('Click "Start Collection" first to collect waste data', 'info');
       }
     });
   }
-  
   markers.push(marker);
+  console.log('Marker added to markers array. Total markers:', markers.length);
 }
+
+// Function to add collection points from approved reports
+function addCollectionPoint(latlng, label, popupContent = null) {
+  console.log('Adding collection point:', latlng, label);
+  console.log('LatLng object:', latlng);
+  console.log('Coordinates - lat:', latlng.lat, 'lng:', latlng.lng);
+  
+  const coord = [latlng.lng, latlng.lat];
+  console.log('Converted coord array [lng, lat]:', coord);
+  
+  selectedPoints.push(coord);
+  console.log('selectedPoints after push:', selectedPoints);
+  
+  addSimpleMarker(coord, selectedPoints.length, popupContent);
+  updatePointsDisplay();
+  
+  console.log('Collection point added. Total points:', selectedPoints.length);
+  console.log('Markers array length:', markers.length);
+  showNotification(`${label} added to collection route`, 'success');
+}
+
+// Make addCollectionPoint available globally
+window.addCollectionPoint = addCollectionPoint;
 
 function startWasteCollectionForPoint(arrayIndex) {
   console.log('Starting waste collection for array index:', arrayIndex);

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Klean — Waste Collection Route Optimizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red-600: #D32F2F;
+      --red-700: #B71C1C;
+      --white: #FFFFFF;
+      --gray-900: #1A1A1A;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .logo {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 6rem;
+      color: var(--white);
+      text-shadow: 
+        0 0 20px rgba(211, 47, 47, 0.5),
+        0 0 40px rgba(211, 47, 47, 0.3),
+        4px 4px 0 var(--red-600);
+      animation: float 3s ease-in-out infinite;
+      user-select: none;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 300ms ease;
+      cursor: none;
+    }
+
+    .logo:hover {
+      transform: scale(1.1);
+      text-shadow: 
+        0 0 30px rgba(211, 47, 47, 0.8),
+        0 0 60px rgba(211, 47, 47, 0.5),
+        4px 4px 0 var(--red-600);
+    }
+
+    .logo .k {
+      color: var(--red-600);
+      text-shadow: 
+        0 0 30px rgba(211, 47, 47, 0.8),
+        0 0 60px rgba(211, 47, 47, 0.4),
+        4px 4px 0 var(--red-700);
+    }
+
+    /* Custom cursor */
+    .cursor {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--red-600);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: difference;
+      transition: transform 0.15s ease;
+    }
+
+    .cursor.active {
+      transform: scale(1.5);
+      background: var(--red-600);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+
+    @media (max-width: 768px) {
+      .logo {
+        font-size: 3.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  
+  <div class="container">
+    <a href="klean.html" class="logo"><span class="k">K</span>lean</a>
+  </div>
+
+  <div class="cursor" id="cursor"></div>
+
+  <script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    
+    document.addEventListener('mousemove', (e) => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+    });
+
+    document.addEventListener('mousedown', () => {
+      cursor.classList.add('active');
+    });
+
+    document.addEventListener('mouseup', () => {
+      cursor.classList.remove('active');
+    });
+
+    // Particle system
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    const particleCount = 100;
+    const mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+    const connectionDistance = 150;
+    const repelDistance = 100;
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.radius = Math.random() * 2 + 1;
+      }
+
+      update() {
+        // Mouse repulsion
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < repelDistance) {
+          const force = (repelDistance - distance) / repelDistance;
+          const angle = Math.atan2(dy, dx);
+          this.vx += Math.cos(angle) * force * 0.5;
+          this.vy += Math.sin(angle) * force * 0.5;
+        }
+
+        // Move particle
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Friction
+        this.vx *= 0.98;
+        this.vy *= 0.98;
+
+        // Boundary bounce
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+        // Keep in bounds
+        this.x = Math.max(0, Math.min(canvas.width, this.x));
+        this.y = Math.max(0, Math.min(canvas.height, this.y));
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(211, 47, 47, 0.6)';
+        ctx.fill();
+      }
+    }
+
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle());
+    }
+
+    // Track mouse
+    document.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    // Animation loop
+    function animate() {
+      ctx.fillStyle = 'rgba(26, 26, 26, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Update and draw particles
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw();
+      });
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < connectionDistance) {
+            const opacity = (1 - distance / connectionDistance) * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(211, 47, 47, ${opacity})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

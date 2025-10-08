@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klean — Waste Collection Route Optimizer</title>
+  
+  <!-- External Libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Mouse Reactive Background -->
+  <div class="mouse-background"></div>
+  
+  <div class="dashboard-container">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar-nav">
+      <div class="sidebar-items">
+        <div class="sidebar-item active" onclick="scrollToSection('map-section')" title="Map">
+          <div class="sidebar-icon">
+            <div class="icon-map"></div>
+          </div>
+          <div class="sidebar-label">Map</div>
+        </div>
+        
+        <div class="sidebar-item" onclick="scrollToSection('controls-section')" title="Controls">
+          <div class="sidebar-icon">
+            <div class="icon-controls"></div>
+          </div>
+          <div class="sidebar-label">Controls</div>
+        </div>
+        
+        <div class="sidebar-item" onclick="scrollToSection('route-section')" title="Route">
+          <div class="sidebar-icon">
+            <div class="icon-route">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          <div class="sidebar-label">Route</div>
+        </div>
+        
+        <div class="sidebar-item" id="analytics-btn" onclick="scrollToAnalytics()" title="Analytics">
+          <div class="sidebar-icon">
+            <div class="icon-analytics">
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+            </div>
+          </div>
+          <div class="sidebar-label">Analytics</div>
+        </div>
+      </div>
+      
+      <!-- Theme Toggle -->
+      <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+        <div class="theme-icon"></div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <div class="header-section">
+        <div class="logo-container">
+          <div class="pixel-logo">K<span class="logo-text">lean</span></div>
+        </div>
+      </div>
+
+      <!-- Map Section -->
+      <div id="map-section" class="content-section">
+        <div class="section-header">
+          <h2>Interactive Map</h2>
+          <p>Click on the map to add collection points. First point will be your depot (K), followed by numbered collection points.</p>
+        </div>
+        <div class="map-container">
+          <div id="map"></div>
+        </div>
+      </div>
+
+      <!-- Controls Section -->
+      <div id="controls-section" class="content-section">
+        <div class="section-header">
+          <h2>Route Controls</h2>
+          <p>Manage your collection route and optimize for efficiency</p>
+        </div>
+        
+        <div class="controls-grid">
+          <button class="control-btn primary" id="select-points-btn" onclick="toggleSelectionMode()">
+            Select Points
+          </button>
+          
+          <button class="control-btn secondary" id="start-collection-btn" onclick="startWasteCollection()" style="display: none;">
+            Start Collection
+          </button>
+          
+          <button class="control-btn secondary" onclick="optimizeRoute()">
+            Optimize Route
+          </button>
+          
+          <button class="control-btn secondary" onclick="resetMap()">
+            Reset Map
+          </button>
+          
+          <button class="control-btn secondary" onclick="exportRoute()">
+            Export Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Route Information Section -->
+      <div id="route-section" class="content-section">
+        <div class="section-header">
+          <h2>Route Information</h2>
+          <p>Current route details and turn-by-turn directions</p>
+        </div>
+        
+        <div class="route-info-grid">
+          <div class="info-card">
+            <div class="card-icon">P</div>
+            <div class="card-content">
+              <div class="card-label">Total Points</div>
+              <div class="card-value" id="total-points">0</div>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <div class="card-icon">D</div>
+            <div class="card-content">
+              <div class="card-label">Total Distance</div>
+              <div class="card-value" id="total-distance">0 km</div>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <div class="card-icon">T</div>
+            <div class="card-content">
+              <div class="card-label">Estimated Time</div>
+              <div class="card-value" id="estimated-time">0 min</div>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <div class="card-icon">C</div>
+            <div class="card-content">
+              <div class="card-label">Fuel Cost</div>
+              <div class="card-value" id="fuel-cost">₹0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turn-by-turn directions -->
+        <div class="directions-container">
+          <h3>Turn-by-turn Directions</h3>
+          <div class="directions-list" id="directions-list">
+            <div class="no-route">No route calculated yet. Add points and click "Optimize Route".</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Section -->
+      <div id="analytics-section" class="content-section">
+        <div class="section-header">
+          <h2>Waste Analytics</h2>
+          <p>Real-time insights and statistics for university waste management</p>
+        </div>
+        
+        <div class="analytics-grid">
+          <!-- Weekly Statistics -->
+          <div class="analytics-card">
+            <h4>Weekly Statistics</h4>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Food Waste</span>
+                <span class="stat-value" id="weekly-food">0 kg</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Plastic Waste</span>
+                <span class="stat-value" id="weekly-plastic">0 kg</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Miscellaneous</span>
+                <span class="stat-value" id="weekly-misc">0 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Generators -->
+          <div class="analytics-card">
+            <h4>Top Waste Generators</h4>
+            <div id="top-generators" class="generators-list">
+              <div class="generator-item">
+                <span class="rank">-</span>
+                <span class="name">No data yet</span>
+                <span class="amount">0 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mess Comparison -->
+          <div class="analytics-card">
+            <h4>Mess Comparison</h4>
+            <div id="mess-comparison" class="mess-bars">
+              <div class="mess-bar">
+                <span class="mess-label">North</span>
+                <div class="bar-container">
+                  <div class="bar" style="width: 0%"></div>
+                </div>
+                <span class="mess-amount">0 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Food Waste Insights -->
+          <div class="analytics-card insights-card">
+            <h4> Most Wasted Foods</h4>
+            <div id="wasted-foods-list" class="wasted-foods-container">
+              <div class="wasted-food-item placeholder">
+                <div class="food-rank">#</div>
+                <div class="food-details">
+                  <div class="food-name">Start collecting waste data</div>
+                  <div class="food-type">to see insights</div>
+                </div>
+                <div class="waste-amount">0 kg</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Smart Insights -->
+          <div class="analytics-card insights-card">
+            <h4>Smart Insights & Recommendations</h4>
+            <div id="ai-insights-list" class="insights-container">
+              <div class="insight-item">
+                <div class="insight-icon">🔍</div>
+                <div class="insight-text">Collecting data to generate smart insights about food preferences and waste patterns...</div>
+              </div>
+            </div>
+            <div class="insights-loading" id="insights-loading" style="display: none;">
+              <div class="loading-spinner"></div>
+              <span>Analyzing data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waste Tracking Modal -->
+  <div id="waste-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Waste Collection Point</h3>
+        <button class="modal-close" onclick="closeWasteModal()">&times;</button>
+      </div>
+      
+      <div class="modal-content">
+        <!-- Step 1: Waste Type Selection -->
+        <div id="step-waste-type" class="modal-step active">
+          <h4>Select Waste Type</h4>
+          <div class="waste-type-grid">
+            <button class="waste-type-btn" data-type="food" onclick="selectWasteType('food')">
+              <div class="waste-icon">F</div>
+              <span>Food Waste</span>
+            </button>
+            <button class="waste-type-btn" data-type="plastic" onclick="selectWasteType('plastic')">
+              <div class="waste-icon">P</div>
+              <span>Plastic Waste</span>
+            </button>
+            <button class="waste-type-btn" data-type="misc" onclick="selectWasteType('misc')">
+              <div class="waste-icon">M</div>
+              <span>Miscellaneous</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Hostel Selection (for food waste only) -->
+        <div id="step-hostel" class="modal-step">
+          <h4>Select Hostel</h4>
+          <div class="hostel-grid">
+            <button class="hostel-btn" data-hostel="FDR" onclick="selectHostel('FDR')">
+              <div class="hostel-code">FDR</div>
+              <span>FDR</span>
+            </button>
+            <button class="hostel-btn" data-hostel="EGR" onclick="selectHostel('EGR')">
+              <div class="hostel-code">EGR</div>
+              <span>EGR</span>
+            </button>
+            <button class="hostel-btn" data-hostel="HR" onclick="selectHostel('HR')">
+              <div class="hostel-code">HR</div>
+              <span>HR</span>
+            </button>
+            <button class="hostel-btn" data-hostel="AR" onclick="selectHostel('AR')">
+              <div class="hostel-code">AR</div>
+              <span>AR</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Mess Selection (for food waste only) -->
+        <div id="step-mess" class="modal-step">
+          <h4>Select Mess</h4>
+          <div class="mess-grid">
+            <button class="mess-btn" data-mess="north" onclick="selectMess('north')">
+              <div class="mess-name">North Mess</div>
+              <div class="mess-specialty">Multi-cuisine</div>
+            </button>
+            <button class="mess-btn" data-mess="south" onclick="selectMess('south')">
+              <div class="mess-name">South Mess</div>
+              <div class="mess-specialty">South Indian</div>
+            </button>
+            <button class="mess-btn" data-mess="andhra" onclick="selectMess('andhra')">
+              <div class="mess-name">Andhra Mess</div>
+              <div class="mess-specialty">Andhra cuisine</div>
+            </button>
+            <button class="mess-btn" data-mess="kerala" onclick="selectMess('kerala')">
+              <div class="mess-name">Kerala Mess</div>
+              <div class="mess-specialty">Kerala cuisine</div>
+            </button>
+            <button class="mess-btn" data-mess="nri" onclick="selectMess('nri')">
+              <div class="mess-name">NRI Mess</div>
+              <div class="mess-specialty">International</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4: Weight Input -->
+        <div id="step-weight" class="modal-step">
+          <h4>Enter Waste Weight</h4>
+          
+          <!-- Today's Menu Display -->
+          <div id="todays-menu" class="todays-menu" style="display: none;">
+            <div class="menu-header">
+              <span class="menu-icon"></span>
+              <span class="menu-title">Today's Menu</span>
+            </div>
+            <div class="menu-details">
+              <div class="dish-name" id="current-dish">-</div>
+              <div class="dish-type" id="current-dish-type">-</div>
+              <div class="dish-ingredients" id="current-ingredients">-</div>
+            </div>
+          </div>
+          
+          <div class="weight-input-container">
+            <div class="weight-summary">
+              <div class="summary-item">
+                <span class="label">Type:</span>
+                <span id="summary-type" class="value">-</span>
+              </div>
+              <div class="summary-item" id="summary-hostel-container" style="display: none;">
+                <span class="label">Hostel:</span>
+                <span id="summary-hostel" class="value">-</span>
+              </div>
+              <div class="summary-item" id="summary-mess-container" style="display: none;">
+                <span class="label">Mess:</span>
+                <span id="summary-mess" class="value">-</span>
+              </div>
+            </div>
+            
+            <div class="weight-input-group">
+              <label for="waste-weight">Weight (kg)</label>
+              <input type="number" id="waste-weight" placeholder="0.0" step="0.1" min="0" max="1000">
+            </div>
+            
+            <div class="meal-time-group" id="meal-time-container" style="display: none;">
+              <label>Meal Time</label>
+              <select id="meal-time">
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button id="modal-back-btn" class="modal-btn secondary" onclick="previousStep()" style="display: none;">Back</button>
+        <button id="modal-next-btn" class="modal-btn primary" onclick="nextStep()">Next</button>
+        <button id="modal-submit-btn" class="modal-btn primary" onclick="submitWasteData()" style="display: none;">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Panel -->
+  <div id="analytics-panel" class="analytics-overlay">
+    <div class="analytics-container">
+      <div class="analytics-header">
+        <h3>Waste Analytics Dashboard</h3>
+        <button class="analytics-close" onclick="closeAnalytics()">&times;</button>
+      </div>
+      
+      <div class="analytics-content">
+        <div class="analytics-grid">
+          <!-- Weekly Summary -->
+          <div class="analytics-card">
+            <h4>Weekly Summary</h4>
+            <div class="weekly-stats" id="weekly-stats">
+              <div class="stat-row">
+                <span>Total Food Waste:</span>
+                <span id="weekly-food">0 kg</span>
+              </div>
+              <div class="stat-row">
+                <span>Total Plastic:</span>
+                <span id="weekly-plastic">0 kg</span>
+              </div>
+              <div class="stat-row">
+                <span>Total Misc:</span>
+                <span id="weekly-misc">0 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Waste Generators -->
+          <div class="analytics-card">
+            <h4>Top Waste Generators</h4>
+            <div class="top-generators" id="top-generators">
+              <div class="generator-item">
+                <span class="rank">1.</span>
+                <span class="name">No data yet</span>
+                <span class="amount">0 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mess Comparison -->
+          <div class="analytics-card">
+            <h4>Mess Waste Comparison</h4>
+            <div class="mess-comparison" id="mess-comparison">
+              <div class="mess-bar" data-mess="north">
+                <span class="mess-label">North</span>
+                <div class="bar-container">
+                  <div class="bar" style="width: 0%"></div>
+                </div>
+                <span class="mess-amount">0 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Insights -->
+          <div class="analytics-card insights-card">
+            <h4>AI Insights</h4>
+            <div class="insights-list" id="insights-list">
+              <div class="insight-item">
+                <div class="insight-icon">!</div>
+                <div class="insight-text">Start collecting waste data to generate insights</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- External Scripts -->
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
+  
+  <!-- Custom Script -->
+  <script src="script.js"></script>
+</body>
+</html>

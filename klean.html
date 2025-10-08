@@ -488,6 +488,36 @@
     </div>
   </div>
 
+  <!-- ESP32 Sensor Dashboard -->
+  <div class="sensor-dashboard" id="sensor-dashboard">
+    <h4>📡 Sensor Dustbins</h4>
+    <div class="sensor-status-grid">
+      <div class="sensor-status-item">
+        <div class="sensor-status-number" id="full-count">0</div>
+        <div class="sensor-status-label">Full</div>
+      </div>
+      <div class="sensor-status-item">
+        <div class="sensor-status-number" id="partial-count">0</div>
+        <div class="sensor-status-label">Partial</div>
+      </div>
+      <div class="sensor-status-item">
+        <div class="sensor-status-number" id="empty-count">0</div>
+        <div class="sensor-status-label">Empty</div>
+      </div>
+    </div>
+    <div class="sensor-controls">
+      <button class="sensor-control-btn" id="toggle-monitoring-btn" onclick="toggleDustbinMonitoring()">
+        Stop Monitoring
+      </button>
+      <button class="sensor-control-btn" onclick="testSensorNotification()">
+        Test Alert
+      </button>
+    </div>
+    <div class="sensor-sync-info">
+      <small id="last-sync">Last sync: Never</small>
+    </div>
+  </div>
+
   <!-- External Scripts -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>

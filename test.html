@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klean V3 - System Test</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            color: #D32F2F;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .status-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #D32F2F;
+        }
+        .status-card h3 {
+            margin-top: 0;
+            color: #D32F2F;
+        }
+        .status-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-online {
+            background: #4CAF50;
+            color: white;
+        }
+        .status-offline {
+            background: #f44336;
+            color: white;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .test-btn {
+            background: #D32F2F;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .test-btn:hover {
+            background: #B71C1C;
+        }
+        .log {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .dustbin-list {
+            display: grid;
+            gap: 10px;
+        }
+        .dustbin-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dustbin-status {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .status-full { background: #ff4444; }
+        .status-partial { background: #ffaa00; }
+        .status-empty { background: #44ff44; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Klean V3 - ESP32 System Test</h1>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>📡 Backend API</h3>
+                <p>Status: <span id="backend-status" class="status-indicator status-offline">Checking...</span></p>
+                <p>Endpoint: <code>http://localhost:5000/api</code></p>
+                <p>Last Check: <span id="backend-last-check">Never</span></p>
+            </div>
+            
+            <div class="status-card">
+                <h3>🗑️ Sensor Dustbins</h3>
+                <p>Total: <span id="total-dustbins">0</span></p>
+                <p>Full: <span id="full-dustbins">0</span></p>
+                <p>Partial: <span id="partial-dustbins">0</span></p>
+                <p>Empty: <span id="empty-dustbins">0</span></p>
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button class="test-btn" onclick="checkBackendStatus()">Check Backend</button>
+            <button class="test-btn" onclick="loadDustbinStatus()">Refresh Dustbins</button>
+            <button class="test-btn" onclick="simulateFullDustbin()">Simulate Full Dustbin</button>
+            <button class="test-btn" onclick="simulateEmptyDustbin()">Simulate Empty Dustbin</button>
+            <button class="test-btn" onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="status-card">
+            <h3>🗑️ Active Dustbins</h3>
+            <div id="dustbin-list" class="dustbin-list">
+                Loading...
+            </div>
+        </div>
+        
+        <div class="status-card">
+            <h3>📝 System Log</h3>
+            <div id="log" class="log">
+                System initialized...<br>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="klean.html" style="color: #D32F2F; text-decoration: none; font-weight: bold;">
+                🚀 Open Main Application
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${timestamp}] ${message}<br>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = 'Log cleared...<br>';
+        }
+        
+        async function checkBackendStatus() {
+            log('Checking backend status...');
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('backend-status').textContent = 'Online';
+                    document.getElementById('backend-status').className = 'status-indicator status-online';
+                    document.getElementById('backend-last-check').textContent = new Date().toLocaleTimeString();
+                    log(`✅ Backend online: ${data.service}`);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('backend-status').textContent = 'Offline';
+                document.getElementById('backend-status').className = 'status-indicator status-offline';
+                log(`❌ Backend error: ${error.message}`);
+            }
+        }
+        
+        async function loadDustbinStatus() {
+            log('Loading dustbin status...');
+            try {
+                const response = await fetch(`${API_BASE}/dustbin/status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const dustbins = data.dustbins;
+                    
+                    // Update counters
+                    const total = Object.keys(dustbins).length;
+                    const full = Object.values(dustbins).filter(d => d.status === 'full').length;
+                    const partial = Object.values(dustbins).filter(d => d.status === 'partial').length;
+                    const empty = Object.values(dustbins).filter(d => d.status === 'empty').length;
+                    
+                    document.getElementById('total-dustbins').textContent = total;
+                    document.getElementById('full-dustbins').textContent = full;
+                    document.getElementById('partial-dustbins').textContent = partial;
+                    document.getElementById('empty-dustbins').textContent = empty;
+                    
+                    // Update dustbin list
+                    const listEl = document.getElementById('dustbin-list');
+                    listEl.innerHTML = '';
+                    
+                    Object.values(dustbins).forEach(dustbin => {
+                        const item = document.createElement('div');
+                        item.className = 'dustbin-item';
+                        item.innerHTML = `
+                            <div>
+                                <strong>${dustbin.location.name}</strong><br>
+                                <small>ID: ${dustbin.id} | Battery: ${dustbin.battery_level}%</small>
+                            </div>
+                            <div>
+                                <span class="dustbin-status status-${dustbin.status}">${dustbin.status.toUpperCase()}</span>
+                            </div>
+                        `;
+                        listEl.appendChild(item);
+                    });
+                    
+                    log(`✅ Loaded ${total} dustbins (${full} full, ${partial} partial, ${empty} empty)`);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Failed to load dustbins: ${error.message}`);
+            }
+        }
+        
+        async function simulateFullDustbin() {
+            log('Simulating full dustbin...');
+            try {
+                const response = await fetch(`${API_BASE}/dustbin/simulate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dustbin_id: '001',
+                        status: 'full',
+                        battery_level: 85
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Simulated dustbin 001 as full');
+                    setTimeout(loadDustbinStatus, 500);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Simulation failed: ${error.message}`);
+            }
+        }
+        
+        async function simulateEmptyDustbin() {
+            log('Simulating empty dustbin...');
+            try {
+                const response = await fetch(`${API_BASE}/dustbin/simulate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dustbin_id: '001',
+                        status: 'empty',
+                        battery_level: 90
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Simulated dustbin 001 as empty');
+                    setTimeout(loadDustbinStatus, 500);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Simulation failed: ${error.message}`);
+            }
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('🚀 Klean V3 System Test initialized');
+            checkBackendStatus();
+            loadDustbinStatus();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                checkBackendStatus();
+                loadDustbinStatus();
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,11 @@
 // Klean - Waste Collection Route Optimizer JavaScript
 
+// Configuration
+const API_KEY = 'use ur own api'; // OpenRouteService API key
+
+// Grok API Configuration
+const GROK_API_KEY = 'use ur own api';
+const GROK_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Global variables
 let selectedPoints = [];

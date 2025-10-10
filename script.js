@@ -1,11 +1,5 @@
 // Klean - Waste Collection Route Optimizer JavaScript
 
-// Configuration
-const API_KEY = '5b3ce3597851110001cf6248f699bcd48cfa4e4facd7b6b0be138f78'; // OpenRouteService API key
-
-// Gemini API Configuration
-const GEMINI_API_KEY = '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';
-const GEMINI_API_URL = 'https://api.gemini.com/v1/chat/completions';
 
 // Global variables
 let selectedPoints = [];
@@ -2636,4 +2630,5 @@ const notificationCSS = `
 
 const styleSheet = document.createElement('style');
 styleSheet.textContent = notificationCSS;
+
 document.head.appendChild(styleSheet);

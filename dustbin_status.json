@@ -1,0 +1,44 @@
+{
+  "dustbins": {
+    "001": {
+      "id": "001",
+      "location": {
+        "lat": 10.935007, 
+        "lng": 76.743286,
+        "name": "Main Library - Sensor Dustbin 1"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T17:14:49.530103",
+      "sensor_type": "ultrasonic",
+      "sensor_health": "good"
+    },
+    "002": {
+      "id": "002",
+      "location": {
+        "lat": 10.940012,
+        "lng": 76.74113,
+        "name": "Mess Area - Sensor Dustbin 2"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T12:00:00.000Z",
+      "sensor_type": "ultrasonic",
+      "sensor_health": "good"
+    },
+    "003": {
+      "id": "003",
+      "location": {
+        "lat": 10.936778,
+        "lng": 76.742724,
+        "name": "Hostel Block - Sensor Dustbin 3"
+      },
+      "status": "empty",
+      "last_updated": "2025-10-08T12:00:00.000Z",
+      "sensor_type": "ultrasonic",
+      "sensor_health": "good"
+    }
+  },
+  "last_sync": "2025-10-08T17:14:49.530565",
+  "total_dustbins": 3,
+  "full_dustbins": 0,
+  "empty_dustbins": 3
+}

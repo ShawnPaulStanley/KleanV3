@@ -20,6 +20,18 @@ let currentWasteEntry = {};
 let currentModalStep = 1;
 let currentPointIndex = 0;
 
+// ESP32 Dustbin Monitoring Variables
+let sensorDustbins = {};
+let sensorMarkers = {};
+let dustbinPollingInterval = null;
+let lastDustbinSync = null;
+let dustbinNotifications = [];
+
+// ESP32 Configuration
+const DUSTBIN_API_BASE = 'http://localhost:5000/api';
+const POLLING_INTERVAL = 15000; // 15 seconds
+const NOTIFICATION_DURATION = 5000; // 5 seconds
+
 // University data structures
 const hostels = {
   'FDR': 'FDR',
@@ -312,6 +324,9 @@ function initializeMap() {
   // Setup map - Centered on Coimbatore
   map = L.map('map').setView([11.016844, 76.955307], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // Make map available globally for reports integration
+  window.map = map;
 
   // Handle map clicks
   map.on('click', onMapClick);
@@ -1055,21 +1070,21 @@ async function submitWasteData() {
   showNotification(`Added ${currentWasteEntry.type} waste data for point ${currentWasteEntry.pointNumber}${dishInfo} (${weight} kg)`, 'success');
 }
 
-function addSimpleMarker(coord, pointNumber) {
+function addSimpleMarker(coord, pointNumber, popupContent = null) {
+  console.log('addSimpleMarker called with coord:', coord, 'pointNumber:', pointNumber);
+  
   let markerContent;
   let markerStyle;
-  
   if (pointNumber === 1) {
-    // First point is the depot with pixel "K"
     markerContent = 'K';
     markerStyle = `
-      background-color: #B71C1C; 
-      color: white; 
-      border-radius: 8px; 
-      width: 28px; 
-      height: 28px; 
-      line-height: 28px; 
-      text-align: center; 
+      background-color: #B71C1C;
+      color: white;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      text-align: center;
       font-weight: bold;
       font-family: 'Press Start 2P', cursive;
       font-size: 12px;
@@ -1077,16 +1092,15 @@ function addSimpleMarker(coord, pointNumber) {
       box-shadow: 0 0 6px rgba(0,0,0,0.4);
     `;
   } else {
-    // Subsequent points are numbered starting from 1
     markerContent = pointNumber - 1;
     markerStyle = `
-      background-color: #757575; 
-      color: white; 
-      border-radius: 50%; 
-      width: 24px; 
-      height: 24px; 
-      line-height: 24px; 
-      text-align: center; 
+      background-color: #757575;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
       font-weight: bold;
       border: 2px solid white;
       box-shadow: 0 0 4px rgba(0,0,0,0.4);
@@ -1094,7 +1108,8 @@ function addSimpleMarker(coord, pointNumber) {
     `;
   }
   
-  // Add the marker
+  console.log('Creating marker at lat:', coord[1], 'lng:', coord[0]);
+  
   const marker = L.marker([coord[1], coord[0]], {
     icon: L.divIcon({
       className: 'custom-div-icon',
@@ -1102,29 +1117,51 @@ function addSimpleMarker(coord, pointNumber) {
       iconSize: pointNumber === 1 ? [32, 32] : [28, 28],
       iconAnchor: pointNumber === 1 ? [16, 16] : [14, 14]
     }),
-    zIndexOffset: 1000 // Ensure markers are on top
+    zIndexOffset: 1000
   }).addTo(map);
   
-  // Add click event for waste data collection (except depot)
-  if (pointNumber > 1) {
+  console.log('Marker created and added to map:', marker);
+  
+  if (popupContent) {
+    marker.bindPopup(popupContent);
+    console.log('Popup bound to marker with content:', popupContent);
+  } else if (pointNumber > 1) {
     marker.on('click', function(e) {
-      console.log(`Marker ${pointNumber} clicked, wasteCollectionMode:`, wasteCollectionMode);
-      console.log('Selected points array:', selectedPoints);
-      console.log('Selected points length:', selectedPoints.length);
-      e.originalEvent.stopPropagation(); // Prevent map click
-      
+      e.originalEvent.stopPropagation();
       if (wasteCollectionMode) {
-        const arrayIndex = pointNumber - 1; // pointNumber 2 -> index 1, pointNumber 3 -> index 2, etc.
-        console.log('Array index for selected points:', arrayIndex);
+        const arrayIndex = pointNumber - 1;
         startWasteCollectionForPoint(arrayIndex);
       } else {
         showNotification('Click "Start Collection" first to collect waste data', 'info');
       }
     });
   }
-  
   markers.push(marker);
+  console.log('Marker added to markers array. Total markers:', markers.length);
 }
+
+// Function to add collection points from approved reports
+function addCollectionPoint(latlng, label, popupContent = null) {
+  console.log('Adding collection point:', latlng, label);
+  console.log('LatLng object:', latlng);
+  console.log('Coordinates - lat:', latlng.lat, 'lng:', latlng.lng);
+  
+  const coord = [latlng.lng, latlng.lat];
+  console.log('Converted coord array [lng, lat]:', coord);
+  
+  selectedPoints.push(coord);
+  console.log('selectedPoints after push:', selectedPoints);
+  
+  addSimpleMarker(coord, selectedPoints.length, popupContent);
+  updatePointsDisplay();
+  
+  console.log('Collection point added. Total points:', selectedPoints.length);
+  console.log('Markers array length:', markers.length);
+  showNotification(`${label} added to collection route`, 'success');
+}
+
+// Make addCollectionPoint available globally
+window.addCollectionPoint = addCollectionPoint;
 
 function startWasteCollectionForPoint(arrayIndex) {
   console.log('Starting waste collection for array index:', arrayIndex);
@@ -2117,6 +2154,430 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
+// ESP32 Dustbin Monitoring Functions
+async function checkDustbinStatus() {
+  try {
+    const response = await fetch(`${DUSTBIN_API_BASE}/dustbin/status`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const dustbins = data.dustbins;
+    lastDustbinSync = new Date(data.last_sync);
+    
+    // Process each dustbin
+    Object.values(dustbins).forEach(dustbin => {
+      processDustbinUpdate(dustbin);
+    });
+    
+    // Update sensor dustbins cache
+    sensorDustbins = dustbins;
+    
+    // Update dashboard
+    updateSensorDashboard();
+    
+    console.log('Dustbin status updated:', Object.keys(dustbins).length, 'dustbins');
+    
+  } catch (error) {
+    console.error('Error checking dustbin status:', error);
+    showDustbinNotification('Failed to sync with sensor dustbins', 'error');
+  }
+}
+
+function processDustbinUpdate(dustbin) {
+  const oldDustbin = sensorDustbins[dustbin.id];
+  const statusChanged = oldDustbin && oldDustbin.status !== dustbin.status;
+  
+  // Handle status changes
+  if (statusChanged) {
+    handleDustbinStatusChange(dustbin, oldDustbin.status);
+  }
+  
+  // Update or add marker on map
+  updateDustbinMarker(dustbin);
+}
+
+function handleDustbinStatusChange(dustbin, oldStatus) {
+  const newStatus = dustbin.status;
+  
+  console.log(`Dustbin ${dustbin.id} status changed: ${oldStatus} -> ${newStatus}`);
+  
+  if (newStatus === 'full') {
+    // Auto-add to route
+    addSensorDustbinToRoute(dustbin);
+    showDustbinNotification(
+      `🚨 Dustbin at ${dustbin.location.name} is full! Added to collection route.`,
+      'warning'
+    );
+    
+    // Play alert sound (optional)
+    playAlertSound();
+    
+  } else if (oldStatus === 'full' && (newStatus === 'empty' || newStatus === 'partial')) {
+    // Auto-remove from route
+    removeSensorDustbinFromRoute(dustbin);
+    showDustbinNotification(
+      `✅ Dustbin at ${dustbin.location.name} has been emptied.`,
+      'success'
+    );
+  }
+}
+
+function addSensorDustbinToRoute(dustbin) {
+  const point = {
+    lat: dustbin.location.lat,
+    lng: dustbin.location.lng,
+    name: dustbin.location.name,
+    type: 'sensor_dustbin',
+    dustbin_id: dustbin.id,
+    capacity: dustbin.capacity_percentage || 90
+  };
+  
+  // Check if already in selectedPoints
+  const existingIndex = selectedPoints.findIndex(p => 
+    p.type === 'sensor_dustbin' && p.dustbin_id === dustbin.id
+  );
+  
+  if (existingIndex === -1) {
+    selectedPoints.push(point);
+    
+    // Add to wasteData for tracking
+    const wasteEntry = {
+      location: dustbin.location.name,
+      type: 'mixed',
+      weight: 15, // Estimated weight for full sensor dustbin
+      volume: 50, // Estimated volume
+      timestamp: new Date(),
+      hostel: 'Sensor',
+      mess: 'Automatic',
+      day: new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(),
+      automatic: true,
+      dustbin_id: dustbin.id
+    };
+    
+    wasteData.push(wasteEntry);
+    saveWasteData();
+    
+    // Recalculate route if we have multiple points
+    if (selectedPoints.length > 1) {
+      calculateRoute();
+    }
+    
+    console.log(`Added sensor dustbin ${dustbin.id} to route`);
+  }
+}
+
+function removeSensorDustbinFromRoute(dustbin) {
+  // Remove from selectedPoints
+  const pointIndex = selectedPoints.findIndex(p => 
+    p.type === 'sensor_dustbin' && p.dustbin_id === dustbin.id
+  );
+  
+  if (pointIndex !== -1) {
+    selectedPoints.splice(pointIndex, 1);
+    
+    // Remove from wasteData
+    const wasteIndex = wasteData.findIndex(entry => 
+      entry.automatic && entry.dustbin_id === dustbin.id
+    );
+    
+    if (wasteIndex !== -1) {
+      wasteData.splice(wasteIndex, 1);
+      saveWasteData();
+    }
+    
+    // Remove marker
+    const marker = sensorMarkers[dustbin.id];
+    if (marker) {
+      marker.remove();
+      delete sensorMarkers[dustbin.id];
+    }
+    
+    // Recalculate route if we still have points
+    if (selectedPoints.length > 1) {
+      calculateRoute();
+    } else if (selectedPoints.length === 0) {
+      // Clear route if no points left
+      if (window.currentRoute) {
+        window.currentRoute.remove();
+        window.currentRoute = null;
+      }
+    }
+    
+    console.log(`Removed sensor dustbin ${dustbin.id} from route`);
+  }
+}
+
+function updateDustbinMarker(dustbin) {
+  const existingMarker = sensorMarkers[dustbin.id];
+  
+  // Remove existing marker
+  if (existingMarker) {
+    existingMarker.remove();
+  }
+  
+  // Create new marker with updated status
+  const marker = addSensorDustbinMarker(dustbin);
+  sensorMarkers[dustbin.id] = marker;
+}
+
+function addSensorDustbinMarker(dustbin) {
+  const { lat, lng, name } = dustbin.location;
+  const status = dustbin.status;
+  const capacity = dustbin.capacity_percentage || 0;
+  const batteryLevel = dustbin.battery_level || 100;
+  
+  // Determine marker color and style based on status
+  let markerColor, pulseClass;
+  switch (status) {
+    case 'full':
+      markerColor = '#ff4444'; // Red for full
+      pulseClass = 'pulse-red';
+      break;
+    case 'partial':
+      markerColor = '#ffaa00'; // Orange for partial
+      pulseClass = 'pulse-orange';
+      break;
+    case 'empty':
+      markerColor = '#44ff44'; // Green for empty
+      pulseClass = '';
+      break;
+    default:
+      markerColor = '#888888'; // Gray for unknown
+      pulseClass = '';
+  }
+  
+  // Create custom sensor dustbin icon
+  const sensorIcon = L.divIcon({
+    className: `sensor-dustbin-marker ${pulseClass}`,
+    html: `
+      <div class="sensor-dustbin-icon" style="background-color: ${markerColor};">
+        <div class="sensor-icon">📡</div>
+        <div class="capacity-indicator">${capacity}%</div>
+      </div>
+    `,
+    iconSize: [40, 50],
+    iconAnchor: [20, 50],
+    popupAnchor: [0, -50]
+  });
+  
+  const marker = L.marker([lat, lng], { icon: sensorIcon }).addTo(map);
+  
+  // Create detailed popup
+  const popupContent = `
+    <div class="sensor-dustbin-popup">
+      <h3>🗑️ ${name}</h3>
+      <div class="sensor-info">
+        <div class="status-info">
+          <span class="status-badge ${status}">${status.toUpperCase()}</span>
+          <span class="capacity">${capacity}% Full</span>
+        </div>
+        <div class="sensor-details">
+          <p><strong>Dustbin ID:</strong> ${dustbin.id}</p>
+          <p><strong>Sensor Type:</strong> ${dustbin.sensor_type}</p>
+          <p><strong>Battery:</strong> ${batteryLevel}%</p>
+          <p><strong>Last Update:</strong> ${new Date(dustbin.last_updated).toLocaleString()}</p>
+          <p><strong>Health:</strong> <span class="health-${dustbin.sensor_health}">${dustbin.sensor_health}</span></p>
+        </div>
+      </div>
+      <div class="sensor-actions">
+        ${status === 'full' ? 
+          '<button onclick="simulateCollection(\'' + dustbin.id + '\')">Simulate Collection</button>' : 
+          '<button onclick="simulateFullDustbin(\'' + dustbin.id + '\')">Simulate Full</button>'
+        }
+      </div>
+    </div>
+  `;
+  
+  marker.bindPopup(popupContent);
+  
+  return marker;
+}
+
+function startDustbinPolling() {
+  console.log('Starting dustbin status polling...');
+  
+  // Initial check
+  checkDustbinStatus();
+  
+  // Set up interval
+  dustbinPollingInterval = setInterval(checkDustbinStatus, POLLING_INTERVAL);
+  
+  showDustbinNotification('🔄 Sensor dustbin monitoring started', 'success');
+}
+
+function stopDustbinPolling() {
+  if (dustbinPollingInterval) {
+    clearInterval(dustbinPollingInterval);
+    dustbinPollingInterval = null;
+    console.log('Dustbin polling stopped');
+    showDustbinNotification('⏹️ Sensor dustbin monitoring stopped', 'info');
+  }
+}
+
+function showDustbinNotification(message, type = 'info') {
+  const notification = {
+    id: Date.now(),
+    message,
+    type,
+    timestamp: new Date()
+  };
+  
+  dustbinNotifications.push(notification);
+  
+  // Create notification element
+  const notificationEl = document.createElement('div');
+  notificationEl.className = `dustbin-notification ${type}`;
+  notificationEl.innerHTML = `
+    <div class="notification-content">
+      <span class="notification-message">${message}</span>
+      <span class="notification-time">${notification.timestamp.toLocaleTimeString()}</span>
+    </div>
+    <button class="notification-close" onclick="closeDustbinNotification(${notification.id})">×</button>
+  `;
+  
+  // Add to page
+  const container = document.getElementById('notification-container') || createNotificationContainer();
+  container.appendChild(notificationEl);
+  
+  // Auto-remove after duration
+  setTimeout(() => {
+    closeDustbinNotification(notification.id);
+  }, NOTIFICATION_DURATION);
+}
+
+function createNotificationContainer() {
+  const container = document.createElement('div');
+  container.id = 'notification-container';
+  container.className = 'dustbin-notifications';
+  document.body.appendChild(container);
+  return container;
+}
+
+function closeDustbinNotification(notificationId) {
+  const container = document.getElementById('notification-container');
+  if (container) {
+    const notification = container.querySelector(`[data-id="${notificationId}"]`);
+    if (notification) {
+      notification.remove();
+    }
+  }
+  
+  // Remove from array
+  dustbinNotifications = dustbinNotifications.filter(n => n.id !== notificationId);
+}
+
+function playAlertSound() {
+  // Create audio context for alert sound
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.warn('Could not play alert sound:', error);
+  }
+}
+
+// Simulation functions for testing
+async function simulateCollection(dustbinId) {
+  try {
+    const response = await fetch(`${DUSTBIN_API_BASE}/dustbin/simulate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        dustbin_id: dustbinId,
+        status: 'empty'
+      })
+    });
+    
+    if (response.ok) {
+      showDustbinNotification(`✅ Simulated collection for dustbin ${dustbinId}`, 'success');
+    }
+  } catch (error) {
+    console.error('Error simulating collection:', error);
+  }
+}
+
+async function simulateFullDustbin(dustbinId) {
+  try {
+    const response = await fetch(`${DUSTBIN_API_BASE}/dustbin/simulate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        dustbin_id: dustbinId,
+        status: 'full'
+      })
+    });
+    
+    if (response.ok) {
+      showDustbinNotification(`🚨 Simulated full dustbin ${dustbinId}`, 'warning');
+    }
+  } catch (error) {
+    console.error('Error simulating full dustbin:', error);
+  }
+}
+
+// Sensor Dashboard Management Functions
+function updateSensorDashboard() {
+  const fullCount = Object.values(sensorDustbins).filter(d => d.status === 'full').length;
+  const partialCount = Object.values(sensorDustbins).filter(d => d.status === 'partial').length;
+  const emptyCount = Object.values(sensorDustbins).filter(d => d.status === 'empty').length;
+  
+  // Update counters
+  const fullCountEl = document.getElementById('full-count');
+  const partialCountEl = document.getElementById('partial-count');
+  const emptyCountEl = document.getElementById('empty-count');
+  
+  if (fullCountEl) fullCountEl.textContent = fullCount;
+  if (partialCountEl) partialCountEl.textContent = partialCount;
+  if (emptyCountEl) emptyCountEl.textContent = emptyCount;
+  
+  // Update sync time
+  const lastSyncEl = document.getElementById('last-sync');
+  if (lastSyncEl && lastDustbinSync) {
+    lastSyncEl.textContent = `Last sync: ${lastDustbinSync.toLocaleTimeString()}`;
+  }
+  
+  // Update monitoring button
+  const toggleBtn = document.getElementById('toggle-monitoring-btn');
+  if (toggleBtn) {
+    toggleBtn.textContent = dustbinPollingInterval ? 'Stop Monitoring' : 'Start Monitoring';
+    toggleBtn.className = dustbinPollingInterval ? 'sensor-control-btn active' : 'sensor-control-btn';
+  }
+}
+
+function toggleDustbinMonitoring() {
+  if (dustbinPollingInterval) {
+    stopDustbinPolling();
+  } else {
+    startDustbinPolling();
+  }
+  updateSensorDashboard();
+}
+
+function testSensorNotification() {
+  showDustbinNotification('🧪 Test notification - ESP32 system working!', 'info');
+  playAlertSound();
+}
+
 // Add event listeners for modal interactions
 document.addEventListener('DOMContentLoaded', function() {
   // Waste type buttons
@@ -2153,6 +2614,12 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     updateAnalytics();
   }, 500);
+  
+  // Initialize ESP32 dustbin monitoring
+  setTimeout(() => {
+    startDustbinPolling();
+    updateSensorDashboard();
+  }, 1000);
 });
 
 // Add CSS for notification animations
